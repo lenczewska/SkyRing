@@ -26,6 +26,10 @@ npm run lint
 
 For a local backend, create `.env` from `.env.example`. Until the API is connected, the frontend runs standalone.
 
+## Firebase username setup
+
+Enable **Authentication > Sign-in method > Email/Password** and **Firestore Database** in Firebase Console. Publish [firestore.rules](firestore.rules) to enforce unique lowercase usernames in `usernames/{username}`. Users can sign in with either their email or username; the username index stores the email needed for Firebase email/password authentication.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
