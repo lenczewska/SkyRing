@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
+import { createUserWithEmailAndPassword, onAuthStateChanged, signInWithEmailAndPassword, signOut, type User } from 'firebase/auth'
 import './index.css'
+import { auth } from './firebase'
 
 const translations = {
   en: {
@@ -38,7 +40,41 @@ const locations = { en: ['Lisbon', 'Kyoto'], ru: ['Лиссабон', 'Киот�
 
 function App() {
   const [language, setLanguage] = useState<'en' | 'ru'>('en')
+  const [user, setUser] = useState<User | null>(null)
+  const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
+  const [authLoading, setAuthLoading] = useState(false)
   const copy = translations[language]
+
+  useEffect(() => onAuthStateChanged(auth, setUser), [])
+
+  const openAuth = (mode: 'login' | 'register') => {
+    setAuthError('')
+    setAuthMode(mode)
+  }
+
+  const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setAuthLoading(true)
+    setAuthError('')
+
+    try {
+      if (authMode === 'register') {
+        await createUserWithEmailAndPassword(auth, email, password)
+      } else {
+        await signInWithEmailAndPassword(auth, email, password)
+      }
+      setAuthMode(null)
+      setPassword('')
+    } catch (error) {
+      const code = (error as { code?: string }).code
+      setAuthError(code === 'auth/invalid-credential' ? 'Email or password is incorrect.' : code === 'auth/email-already-in-use' ? 'This email is already registered.' : code === 'auth/weak-password' ? 'Password must be at least 6 characters.' : 'Something went wrong. Please try again.')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
 
   return (
     <main className="site-shell">
@@ -47,7 +83,7 @@ function App() {
         <div className="nav-links"><a href="#how-it-works">{copy.navHow}</a><a href="#inspiration">{copy.navInspiration}</a></div>
         <div className="nav-actions">
           <div className="language-switcher" aria-label="Choose language"><button className={language === 'en' ? 'language-active' : ''} onClick={() => setLanguage('en')} type="button">EN</button><span>/</span><button className={language === 'ru' ? 'language-active' : ''} onClick={() => setLanguage('ru')} type="button">RU</button></div>
-          <a className="login-link" href="#login">{copy.login}</a><a className="button button-dark button-small" href="#create">{copy.create} <span aria-hidden="true">↗</span></a>
+          {user ? <><span className="user-email" title={user.email ?? ''}>{user.email}</span><button className="login-link nav-button" onClick={() => signOut(auth)} type="button">Log out</button></> : <button className="login-link nav-button" onClick={() => openAuth('login')} type="button">{copy.login}</button>}<button className="button button-dark button-small nav-button" onClick={() => openAuth('register')} type="button">{copy.create} <span aria-hidden="true">↗</span></button>
         </div>
       </nav>
 
@@ -60,8 +96,22 @@ function App() {
 
       <section className="features-section container" id="inspiration"><div className="section-heading"><p className="section-label">{copy.journey}</p><h2>{copy.featureHeading}</h2></div><div className="feature-grid">{copy.features.map((feature, index) => <article className={`feature-card ${feature[2]}`} key={feature[0]}><div className="feature-top"><span className="feature-number">0{index + 1}</span><span className="feature-arrow" aria-hidden="true">↗</span></div><div><h3>{feature[0]}</h3><p>{feature[1]}</p></div></article>)}</div></section>
 
-      <section className="closing container" id="create"><div className="closing-star" aria-hidden="true">✳</div><p className="eyebrow"><span /> {copy.closingEyebrow}</p><h2>{copy.closingFirst}<br /><em>{copy.closingSecond}</em></h2><a className="button button-dark" href="#login">{copy.createSkyRing} <span aria-hidden="true">↗</span></a></section>
+      <section className="closing container" id="create"><div className="closing-star" aria-hidden="true">✳</div><p className="eyebrow"><span /> {copy.closingEyebrow}</p><h2>{copy.closingFirst}<br /><em>{copy.closingSecond}</em></h2><button className="button button-dark nav-button" onClick={() => openAuth('register')} type="button">{copy.createSkyRing} <span aria-hidden="true">↗</span></button></section>
       <footer className="footer container"><a className="brand" href="#top"><span className="brand-mark" aria-hidden="true"><i /><i /><i /></span><span>SkyRing</span></a><span>{copy.footer}</span><span>© 2026</span></footer>
+
+      {authMode && <div className="auth-overlay" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setAuthMode(null)}>
+        <form className="auth-modal" onSubmit={handleAuth}>
+          <button className="auth-close nav-button" onClick={() => setAuthMode(null)} type="button" aria-label="Close">×</button>
+          <p className="eyebrow"><span /> SkyRing account</p>
+          <h2>{authMode === 'login' ? 'Welcome back.' : 'Start your diary.'}</h2>
+          <p className="auth-subtitle">{authMode === 'login' ? 'Log in to continue your journey.' : 'Create a personal space for every place you love.'}</p>
+          <label htmlFor="email">Email</label><input id="email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          <label htmlFor="password">Password</label><input id="password" type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={6} required />
+          {authError && <p className="auth-error" role="alert">{authError}</p>}
+          <button className="button button-coral auth-submit" disabled={authLoading} type="submit">{authLoading ? 'Please wait...' : authMode === 'login' ? 'Log in' : 'Create account'} <span aria-hidden="true">↗</span></button>
+          <button className="auth-switch nav-button" onClick={() => { setAuthError(''); setAuthMode(authMode === 'login' ? 'register' : 'login') }} type="button">{authMode === 'login' ? 'Need an account? Create one' : 'Already have an account? Log in'}</button>
+        </form>
+      </div>}
     </main>
   )
 }
