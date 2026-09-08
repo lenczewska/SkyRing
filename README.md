@@ -9,6 +9,8 @@ npm install
 npm run dev
 ```
 
+For Firebase, copy `.env.example` to `.env` locally and fill in the web app configuration from Firebase Console. For a Vercel deployment, add the same `VITE_FIREBASE_*` variables in Project Settings > Environment Variables for the `Production` environment, then redeploy.
+
 Production build and lint check:
 
 ```bash
@@ -22,7 +24,7 @@ npm run lint
 - `src/index.css` - Tailwind and global styles.
 - `src/lib/api.ts` - shared client for the future backend API.
 - `server/` - reserved location for the backend service.
-- `.env.example` - example `VITE_API_URL` variable.
+- `.env.example` - example Firebase environment variables.
 
 For a local backend, create `.env` from `.env.example`. Until the API is connected, the frontend runs standalone.
 
