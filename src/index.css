@@ -1345,6 +1345,51 @@ h2 em,
   touch-action: none;
   overscroll-behavior: none;
 }
+.guest-map-intro,
+.guest-post-intro {
+  max-width: 820px;
+  margin: 38px 0 44px;
+  padding: 34px 38px;
+  border-left: 4px solid var(--coral);
+  background: #efe7da;
+}
+.guest-map-kicker {
+  margin: 0 0 14px;
+  color: var(--coral);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .16em;
+}
+.guest-map-intro h2,
+.guest-post-intro h2 {
+  max-width: 650px;
+  font-size: clamp(32px, 4vw, 52px);
+  line-height: 1;
+}
+.guest-map-intro p:not(.guest-map-kicker),
+.guest-post-intro p:not(.guest-map-kicker) {
+  max-width: 620px;
+  margin: 17px 0 24px;
+  color: #55706b;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.guest-post-intro {
+  margin-bottom: 48px;
+}
+.posts-page .posts-feed {
+  margin-top: 42px;
+}
+@media (max-width: 800px) {
+  .guest-map-intro,
+  .guest-post-intro {
+    padding: 25px 22px;
+  }
+  .guest-map-intro h2,
+  .guest-post-intro h2 {
+    font-size: 34px;
+  }
+}
 .profile-readonly-map {
   margin-top: 38px;
   pointer-events: none;
