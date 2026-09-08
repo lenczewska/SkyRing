@@ -6,6 +6,8 @@ import { auth, db } from './firebase'
 import AuthModal from './AuthModal'
 import HomePage from './HomePage'
 import ProfilePage from './ProfilePage'
+import TravelMapPage from './TravelMapPage'
+import PostsPage from './PostsPage'
 import type { AuthMode, Page } from './types'
 
 const translations = {
@@ -14,14 +16,18 @@ const translations = {
 } as const
 
 function App() {
-  const [language, setLanguage] = useState<'en' | 'ru'>('en')
+  const [language, setLanguage] = useState<'en' | 'ru'>(() => window.localStorage.getItem('skyring-language') === 'ru' ? 'ru' : 'en')
   const [user, setUser] = useState<User | null>(null)
   const [username, setUsername] = useState('')
   const [page, setPage] = useState<Page>('home')
   const [authMode, setAuthMode] = useState<AuthMode | null>(null)
   const [profileMenu, setProfileMenu] = useState(false)
-  const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null)
   const copy = translations[language]
+
+  const changeLanguage = (nextLanguage: 'en' | 'ru') => {
+    setLanguage(nextLanguage)
+    window.localStorage.setItem('skyring-language', nextLanguage)
+  }
 
   useEffect(() => onAuthStateChanged(auth, async (nextUser) => {
     setUser(nextUser)
@@ -31,7 +37,8 @@ function App() {
 
   const openAuth = (mode: AuthMode) => setAuthMode(mode)
 
-  return <main className="site-shell"><nav className="nav container"><button className="brand nav-button" onClick={() => setPage('home')} aria-label="SkyRing home" type="button"><span className="brand-mark" aria-hidden="true"><i /><i /><i /></span><span>SkyRing</span></button><div className="nav-links"><button className="nav-button nav-link-button" onClick={() => setPage('home')} type="button">{copy.navHow}</button><button className="nav-button nav-link-button" onClick={() => setPage('home')} type="button">{copy.navInspiration}</button></div><div className="nav-actions"><div className="language-switcher" aria-label="Choose language"><button className={language === 'en' ? 'language-active' : ''} onClick={() => setLanguage('en')} type="button">EN</button><span>/</span><button className={language === 'ru' ? 'language-active' : ''} onClick={() => setLanguage('ru')} type="button">RU</button></div>{user ? <div className="profile-nav"><button className="button button-dark button-small nav-button user-account-button" onClick={() => setProfileMenu(!profileMenu)} type="button">@{username || 'account'} <span aria-hidden="true">↗</span></button>{profileMenu && <div className="profile-menu"><button className="nav-button" onClick={() => { setPage('profile'); setProfileMenu(false) }} type="button">My profile</button><button className="nav-button menu-logout" onClick={() => { signOut(auth); setPage('home'); setProfileMenu(false) }} type="button">Log out</button></div>}</div> : <button className="button button-dark button-small nav-button" onClick={() => openAuth('login')} type="button">{copy.accountAction} <span aria-hidden="true">↗</span></button>}</div></nav>{page === 'home' ? <HomePage copy={copy} user={user} onRequestAuth={() => openAuth('login')} onRegister={() => openAuth('register')} /> : user ? <ProfilePage user={user} username={username} language={language} onRequestAuth={() => openAuth('login')} selectedPhoto={selectedPhoto} onSelectPhoto={setSelectedPhoto} /> : null}{authMode && <AuthModal mode={authMode} onClose={() => setAuthMode(null)} onSwitch={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} />}</main>
+  const navigationCopy = language === 'ru' ? { profile: 'Мой профиль', map: 'Карта путешествий', posts: 'Посты', logout: 'Выйти' } : { profile: 'My profile', map: 'Travel map', posts: 'Posts', logout: 'Log out' }
+  return <main className="site-shell"><nav className="nav container"><button className="brand nav-button" onClick={() => setPage('home')} aria-label="SkyRing home" type="button"><span className="brand-mark" aria-hidden="true"><i /><i /><i /></span><span>SkyRing</span></button><div className="nav-links"><button className="nav-button nav-link-button" onClick={() => setPage('map')} type="button">{navigationCopy.map}</button><button className="nav-button nav-link-button" onClick={() => setPage('posts')} type="button">{navigationCopy.posts}</button></div><div className="nav-actions"><div className="language-switcher" aria-label={language === 'ru' ? 'Выбор языка' : 'Choose language'}><button className={language === 'en' ? 'language-active' : ''} onClick={() => changeLanguage('en')} type="button">EN</button><span>/</span><button className={language === 'ru' ? 'language-active' : ''} onClick={() => changeLanguage('ru')} type="button">RU</button></div>{user ? <div className="profile-nav"><button className="button button-dark button-small nav-button user-account-button" onClick={() => setProfileMenu(!profileMenu)} type="button">@{username || 'account'} <span aria-hidden="true">↗</span></button>{profileMenu && <div className="profile-menu"><button className="nav-button" onClick={() => { setPage('profile'); setProfileMenu(false) }} type="button">{navigationCopy.profile}</button><button className="nav-button menu-logout" onClick={() => { signOut(auth); setPage('home'); setProfileMenu(false) }} type="button">{navigationCopy.logout}</button></div>}</div> : <button className="button button-dark button-small nav-button" onClick={() => openAuth('login')} type="button">{copy.accountAction} <span aria-hidden="true">↗</span></button>}</div></nav>{page === 'home' ? <HomePage copy={copy} language={language} user={user} onRequestAuth={() => openAuth('login')} onRegister={() => openAuth('register')} /> : page === 'profile' && user ? <ProfilePage user={user} username={username} language={language} onNavigate={setPage} /> : page === 'map' && user ? <TravelMapPage user={user} language={language} onRequestAuth={() => openAuth('login')} /> : page === 'posts' && user ? <PostsPage user={user} language={language} /> : null}{authMode && <AuthModal mode={authMode} language={language} onClose={() => setAuthMode(null)} onSwitch={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} />}</main>
 }
 
 export default App

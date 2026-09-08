@@ -1,0 +1,46 @@
+import { useCallback, useEffect, useState } from 'react'
+import type { User } from 'firebase/auth'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import MapView, { type VisitedPlace } from './MapView'
+import { db } from './firebase'
+
+type TravelMapPageProps = { user: User; language: 'en' | 'ru'; onRequestAuth: () => void }
+type PlaceDetails = { story?: string; date?: string; airline?: string; photos?: string[] }
+
+type Copy = { eyebrow: string; title: string; intro: string; list: string; empty: string; details: string; story: string; date: string; airline: string; photos: string; save: string; saved: string; placeholder: string; choose: string }
+
+export default function TravelMapPage({ user, language, onRequestAuth }: TravelMapPageProps) {
+  const [places, setPlaces] = useState<VisitedPlace[]>([])
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [details, setDetails] = useState<Record<string, PlaceDetails>>({})
+  const [draft, setDraft] = useState<PlaceDetails>({})
+  const [saved, setSaved] = useState(false)
+  const copy: Copy = language === 'ru' ? { eyebrow: 'КАРТА ПУТЕШЕСТВ', title: 'Места, которые остались с вами.', intro: 'Отмечайте города и страны, а затем добавляйте к каждому месту воспоминания.', list: 'ОТМЕЧЕННЫЕ МЕСТА', empty: 'Пока нет отмеченных городов.', details: 'Детали поездки', story: 'Ваше впечатление', date: 'Дата поездки', airline: 'Авиакомпания', photos: 'Фотографии', save: 'Сохранить детали', saved: 'Сохранено', placeholder: 'Напишите ваше впечатление об этой поездке.', choose: 'Выберите город ниже, чтобы добавить детали.' } : { eyebrow: 'TRAVEL MAP', title: 'Places that stayed with you.', intro: 'Mark cities and countries, then add memories to each place.', list: 'MARKED PLACES', empty: 'No cities marked yet.', details: 'Trip details', story: 'Your impression', date: 'Trip date', airline: 'Airline', photos: 'Photos', save: 'Save details', saved: 'Saved', placeholder: 'Write your impression of this trip.', choose: 'Choose a city below to add details.' }
+
+  const handlePlacesChange = useCallback((nextPlaces: VisitedPlace[]) => {
+    setPlaces(nextPlaces)
+    if (selectedId && !nextPlaces.some((place) => place.id === selectedId)) setSelectedId(null)
+  }, [selectedId])
+
+  useEffect(() => {
+    getDoc(doc(db, 'users', user.uid)).then((snapshot) => setDetails((snapshot.data()?.placeDetails as Record<string, PlaceDetails> | undefined) ?? {})).catch(() => setDetails({}))
+  }, [user.uid])
+
+  const selectPlace = (place: VisitedPlace) => {
+    setSelectedId(place.id)
+    setDraft(details[place.id] ?? {})
+    setSaved(false)
+  }
+
+  const saveDetails = async () => {
+    if (!selectedId) return
+    const nextDetails = { ...details, [selectedId]: draft }
+    setDetails(nextDetails)
+    await setDoc(doc(db, 'users', user.uid), { placeDetails: nextDetails }, { merge: true })
+    setSaved(true)
+  }
+
+  const selectedPlace = places.find((place) => place.id === selectedId)
+
+  return <section className="subpage container travel-map-page"><p className="eyebrow"><span /> {copy.eyebrow}</p><h1>{copy.title}</h1><p className="subpage-intro">{copy.intro}</p><MapView mode="profile" user={user} language={language} onPlacesChange={handlePlacesChange} onRequestAuth={onRequestAuth} /><section className="marked-places"><p className="section-label">{copy.list}</p>{places.length === 0 ? <p className="empty-state">{copy.empty}</p> : <div className="place-list">{places.map((place) => <button className={`place-list-item ${selectedId === place.id ? 'place-list-item-active' : ''}`} key={place.id} onClick={() => selectPlace(place)} type="button"><span className="place-list-dot" /><span><strong>{place.label}</strong><small>{place.latitude.toFixed(3)}, {place.longitude.toFixed(3)}</small></span><span aria-hidden="true">↗</span></button>)}</div>}</section><section className="place-detail-panel">{selectedPlace ? <><p className="section-label">{copy.details}</p><h2>{selectedPlace.label}</h2><label>{copy.story}<textarea value={draft.story ?? ''} onChange={(event) => setDraft({ ...draft, story: event.target.value })} placeholder={copy.placeholder} /></label><div className="detail-grid"><label>{copy.date}<input type="date" value={draft.date ?? ''} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></label><label>{copy.airline}<input value={draft.airline ?? ''} onChange={(event) => setDraft({ ...draft, airline: event.target.value })} placeholder="e.g. AZAL" /></label></div><label>{copy.photos}<input type="file" accept="image/*" multiple onChange={(event) => setDraft({ ...draft, photos: Array.from(event.target.files ?? []).map((file) => URL.createObjectURL(file)) })} /></label>{draft.photos && <div className="detail-photo-preview">{draft.photos.map((photo) => <img src={photo} alt={selectedPlace.label} key={photo} />)}</div>}<button className="button button-coral" onClick={() => void saveDetails()} type="button">{saved ? copy.saved : copy.save}</button></> : <p className="empty-state">{copy.choose}</p>}</section></section>
+}

@@ -3,9 +3,10 @@ import MapView from './MapView'
 
 type GlobeViewProps = {
   user: User | null
+  language: 'en' | 'ru'
   onRequestAuth: () => void
 }
 
-export default function GlobeView({ user, onRequestAuth }: GlobeViewProps) {
-  return <MapView mode="globe" user={user} onRequestAuth={onRequestAuth} />
+export default function GlobeView({ user, language, onRequestAuth }: GlobeViewProps) {
+  return <MapView mode="globe" user={user} language={language} onRequestAuth={onRequestAuth} />
 }
