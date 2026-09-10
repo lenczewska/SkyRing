@@ -33,6 +33,7 @@ export default function ProfilePage({
           shared: "ПОСТЫ ПОЛЬЗОВАТЕЛЯ",
           empty: "Пока нет опубликованных постов.",
           comments: "Комментариев",
+          journeys: "путешествий в",
         }
       : {
           diary: "Travel diary",
@@ -46,6 +47,7 @@ export default function ProfilePage({
           shared: "USER POSTS",
           empty: "No published posts yet.",
           comments: "Comments",
+          journeys: "journeys in",
         };
 
   useEffect(() => {
@@ -73,18 +75,12 @@ export default function ProfilePage({
               <strong>{posts.length}</strong> {copy.posts.toLowerCase()}
             </span>
             <span>
-              <strong>2026</strong> {copy.journeying}
+              <strong>
+                {posts.filter((post) => post.date.startsWith("2026")).length}
+              </strong>{" "}
+              {copy.journeys} 2026
             </span>
           </div>
-        </div>
-        <div className="profile-route">
-          <span className="plane-icon">✈</span>
-          <span
-            dangerouslySetInnerHTML={{
-              __html:
-                language === "ru" ? "только<br />просмотр" : "view<br />only",
-            }}
-          />
         </div>
       </div>
       <div className="profile-divider">
