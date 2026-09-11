@@ -17,6 +17,7 @@ export type VisitedPlace = {
   latitude: number;
   longitude: number;
   label: string;
+  kind?: "country" | "city";
 };
 
 type MapViewProps = {
@@ -134,7 +135,9 @@ export default function MapView({
     }
 
     const label = country.properties?.name ?? `Country ${countryKey(country)}`;
-    const existingPlace = places.find((place) => place.label === label);
+    const existingPlace = places.find(
+      (place) => place.label === label && isCountryPlace(place),
+    );
     const nextPlaces = existingPlace
       ? places.filter((place) => place.id !== existingPlace.id)
       : (() => {
@@ -144,6 +147,7 @@ export default function MapView({
             latitude,
             longitude,
             label,
+            kind: "country",
           };
           return [...places, place];
         })();
@@ -174,6 +178,7 @@ export default function MapView({
       latitude: Number(result.lat),
       longitude: Number(result.lon),
       label,
+      kind: "city",
     };
     const nextPlaces = [
       ...places.filter((existingPlace) => existingPlace.id !== place.id),
@@ -243,12 +248,14 @@ export default function MapView({
     }
   };
 
-  const visitedNames = new Set(places.map((place) => place.label));
+  const countryPlaces = places.filter(isCountryPlace);
+  const cityPlaces = places.filter((place) => !isCountryPlace(place));
+  const visitedNames = new Set(countryPlaces.map((place) => place.label));
   const mapWidth = mode === "profile" ? 960 : 620;
   const mapHeight = 500;
   const globeCenter =
     mode === "globe" ? (projection.invert?.([310, 250]) ?? null) : null;
-  const visiblePlaces = places.filter((place) => {
+  const visiblePlaces = cityPlaces.filter((place) => {
     if (mode !== "globe") return true;
     return globeCenter
       ? geoDistance([place.longitude, place.latitude], globeCenter) <=

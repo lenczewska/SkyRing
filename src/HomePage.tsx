@@ -66,11 +66,11 @@ export default function HomePage({
           <p className="eyebrow">
             <span /> {language === "ru" ? "СНОВА В ПУТИ" : "BACK ON THE ROAD"}
           </p>
-          <h1>
+          <h2 className="text-[60px]">
             {greeting}
             <br />
             <em>{title}</em>
-          </h1>
+          </h2>
           <p className="hero-description">{description}</p>
           <div className="member-welcome-actions">
             <button
