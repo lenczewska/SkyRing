@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
+import { Link } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import MapView from "./MapView";
 import type { Post } from "./PostsPage";
@@ -9,14 +10,12 @@ type ProfilePageProps = {
   user: User;
   username: string;
   language: "en" | "ru";
-  onNavigate: (page: "map" | "posts") => void;
 };
 
 export default function ProfilePage({
   user,
   username,
   language,
-  onNavigate,
 }: ProfilePageProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const copy =
@@ -124,12 +123,12 @@ export default function ProfilePage({
         )}
       </section>
       <div className="profile-quick-links">
-        <button onClick={() => onNavigate("map")} type="button">
+        <Link to="/map">
           {copy.map} <span>↗</span>
-        </button>
-        <button onClick={() => onNavigate("posts")} type="button">
+        </Link>
+        <Link to="/posts">
           {copy.posts} <span>↗</span>
-        </button>
+        </Link>
       </div>
     </section>
   );

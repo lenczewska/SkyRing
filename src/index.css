@@ -1670,6 +1670,7 @@ h2 em,
   gap: 14px;
   margin-top: 38px;
 }
+.profile-quick-links a,
 .profile-quick-links button {
   display: flex;
   justify-content: space-between;
@@ -1684,6 +1685,7 @@ h2 em,
     sans-serif;
   text-align: left;
 }
+.profile-quick-links a:hover,
 .profile-quick-links button:hover {
   color: white;
   background: var(--coral);
