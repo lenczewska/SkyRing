@@ -1654,8 +1654,10 @@ h2 em,
   font-weight: 700;
 }
 .place-detail-panel input,
+.place-detail-panel select,
 .place-detail-panel textarea,
 .post-form-grid input,
+.post-form-grid select,
 .post-form-grid textarea,
 .comment-row input {
   width: 100%;
@@ -1667,6 +1669,9 @@ h2 em,
   font: inherit;
   font-size: 13px;
   outline-color: var(--coral);
+}
+.place-detail-panel select {
+  cursor: pointer;
 }
 .place-detail-panel textarea,
 .post-form-grid textarea {

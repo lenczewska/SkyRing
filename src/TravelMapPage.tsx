@@ -9,6 +9,28 @@ type PlaceDetails = { story?: string; date?: string; transport?: string; airline
 
 type Copy = { eyebrow: string; title: string; intro: string; list: string; empty: string; details: string; story: string; date: string; transport: string; transportPlaceholder: string; photos: string; save: string; saved: string; placeholder: string; choose: string }
 
+const TRANSPORT_OPTIONS_RU = [
+  'Самолёт',
+  'Поезд',
+  'Автобус',
+  'Автомобиль',
+  'Корабль / Паром',
+  'Мотоцикл',
+  'Велосипед',
+  'Пешком',
+]
+
+const TRANSPORT_OPTIONS_EN = [
+  'Plane',
+  'Train',
+  'Bus',
+  'Car',
+  'Ferry / Ship',
+  'Motorcycle',
+  'Bicycle',
+  'On foot',
+]
+
 export default function TravelMapPage({ user, language, onRequestAuth }: TravelMapPageProps) {
   const [places, setPlaces] = useState<VisitedPlace[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -16,6 +38,11 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
   const [draft, setDraft] = useState<PlaceDetails>({})
   const [saved, setSaved] = useState(false)
   const copy: Copy = language === 'ru' ? { eyebrow: 'КАРТА ПУТЕШЕСТВ', title: 'Места, которые остались с вами.', intro: 'Отмечайте города и страны, а затем добавляйте к каждому месту воспоминания.', list: 'ОТМЕЧЕННЫЕ МЕСТА', empty: 'Пока нет отмеченных городов.', details: 'Детали поездки', story: 'Ваше впечатление', date: 'Дата поездки', transport: 'Вид транспорта', transportPlaceholder: 'например: поезд, автобус, самолёт...', photos: 'Фотографии', save: 'Сохранить детали', saved: 'Сохранено', placeholder: 'Напишите ваше впечатление об этой поездке.', choose: 'Выберите город ниже, чтобы добавить детали.' } : { eyebrow: 'TRAVEL MAP', title: 'Places that stayed with you.', intro: 'Mark cities and countries, then add memories to each place.', list: 'MARKED PLACES', empty: 'No cities marked yet.', details: 'Trip details', story: 'Your impression', date: 'Trip date', transport: 'Transport', transportPlaceholder: 'e.g. Train, bus, plane...', photos: 'Photos', save: 'Save details', saved: 'Saved', placeholder: 'Write your impression of this trip.', choose: 'Choose a city below to add details.' }
+
+  const currentTransport = draft.transport ?? draft.airline ?? ''
+  const transportOptions = language === 'ru' ? TRANSPORT_OPTIONS_RU : TRANSPORT_OPTIONS_EN
+  const isCustomTransport =
+    Boolean(currentTransport) && !transportOptions.includes(currentTransport)
 
   const handlePlacesChange = useCallback((nextPlaces: VisitedPlace[]) => {
     setPlaces(nextPlaces)
@@ -177,41 +204,62 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
                   </label>
                   <label>
                     {copy.transport}
-                    <input
-                      list="transport-options"
-                      value={draft.transport ?? draft.airline ?? ''}
-                      onChange={(event) =>
-                        setDraft({
-                          ...draft,
-                          transport: event.target.value,
-                          airline: event.target.value,
-                        })
+                    <select
+                      value={
+                        transportOptions.includes(currentTransport)
+                          ? currentTransport
+                          : isCustomTransport
+                            ? '__other__'
+                            : ''
                       }
-                      placeholder={copy.transportPlaceholder}
-                    />
-                    <datalist id="transport-options">
-                      {language === 'ru' ? (
-                        <>
-                          <option value="Самолёт" />
-                          <option value="Поезд" />
-                          <option value="Автобус" />
-                          <option value="Автомобиль" />
-                          <option value="Корабль / Паром" />
-                          <option value="Мотоцикл" />
-                          <option value="Велосипед" />
-                        </>
-                      ) : (
-                        <>
-                          <option value="Plane" />
-                          <option value="Train" />
-                          <option value="Bus" />
-                          <option value="Car" />
-                          <option value="Ferry / Ship" />
-                          <option value="Motorcycle" />
-                          <option value="Bicycle" />
-                        </>
-                      )}
-                    </datalist>
+                      onChange={(event) => {
+                        const val = event.target.value
+                        if (val === '__other__') {
+                          setDraft({
+                            ...draft,
+                            transport: language === 'ru' ? 'Другое' : 'Other',
+                            airline: language === 'ru' ? 'Другое' : 'Other',
+                          })
+                        } else {
+                          setDraft({ ...draft, transport: val, airline: val })
+                        }
+                      }}
+                    >
+                      <option value="">
+                        {language === 'ru' ? 'Выберите вид транспорта...' : 'Choose transport...'}
+                      </option>
+                      {transportOptions.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                      <option value="__other__">
+                        {language === 'ru' ? 'Другое / Свой вариант...' : 'Other / Custom...'}
+                      </option>
+                    </select>
+                    {isCustomTransport && (
+                      <input
+                        type="text"
+                        style={{ marginTop: '8px' }}
+                        value={
+                          currentTransport === 'Другое' || currentTransport === 'Other'
+                            ? ''
+                            : currentTransport
+                        }
+                        onChange={(event) =>
+                          setDraft({
+                            ...draft,
+                            transport: event.target.value,
+                            airline: event.target.value,
+                          })
+                        }
+                        placeholder={
+                          language === 'ru'
+                            ? 'Укажите вид транспорта...'
+                            : 'Specify transport...'
+                        }
+                      />
+                    )}
                   </label>
                 </div>
                 <label>
