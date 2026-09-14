@@ -471,10 +471,10 @@ export default function MapView({
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [mapZoom, setMapZoom] = useState(1);
-  const mapPointers = useRef(new Map<number, { x: number; y: number }>());
-  const pinchDistance = useRef<number | null>(null);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const isPanning = useRef(false);
+  const panStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const profileMapRef = useRef<SVGSVGElement | null>(null);
-  const touchDistance = useRef<number | null>(null);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const pointerDragged = useRef(false);
   const onPlacesChangeRef = useRef(onPlacesChange);
@@ -866,46 +866,6 @@ export default function MapView({
     return () => window.cancelAnimationFrame(frame);
   }, [mode, dragging, hovering]);
 
-  useEffect(() => {
-    if (mode !== "profile" || readOnly || !profileMapRef.current)
-      return undefined;
-    const svg = profileMapRef.current;
-    const getTouchDistance = (touches: TouchList) =>
-      Math.hypot(
-        touches[0].clientX - touches[1].clientX,
-        touches[0].clientY - touches[1].clientY,
-      );
-    const handleTouchStart = (event: TouchEvent) => {
-      if (event.touches.length >= 2) {
-        event.preventDefault();
-        touchDistance.current = getTouchDistance(event.touches);
-      }
-    };
-    const handleTouchMove = (event: TouchEvent) => {
-      if (event.touches.length < 2 || !touchDistance.current) return;
-      event.preventDefault();
-      const distance = getTouchDistance(event.touches);
-      setMapZoom((zoom) =>
-        Math.min(6, Math.max(1, zoom * (distance / touchDistance.current!))),
-      );
-      touchDistance.current = distance;
-    };
-    const handleTouchEnd = (event: TouchEvent) => {
-      if (event.touches.length < 2) touchDistance.current = null;
-    };
-    const options = { passive: false };
-    svg.addEventListener("touchstart", handleTouchStart, options);
-    svg.addEventListener("touchmove", handleTouchMove, options);
-    svg.addEventListener("touchend", handleTouchEnd, options);
-    svg.addEventListener("touchcancel", handleTouchEnd, options);
-    return () => {
-      svg.removeEventListener("touchstart", handleTouchStart);
-      svg.removeEventListener("touchmove", handleTouchMove);
-      svg.removeEventListener("touchend", handleTouchEnd);
-      svg.removeEventListener("touchcancel", handleTouchEnd);
-    };
-  }, [mode, readOnly]);
-
   const handlePointerDown = (event: PointerEvent<SVGSVGElement>) => {
     pointerStart.current = { x: event.clientX, y: event.clientY };
     pointerDragged.current = false;
@@ -932,30 +892,25 @@ export default function MapView({
       setRotation((value) => value + event.movementX * 0.25);
     }
   };
+
   const handleMapPointerDown = (event: PointerEvent<SVGSVGElement>) => {
     pointerStart.current = { x: event.clientX, y: event.clientY };
     pointerDragged.current = false;
-    mapPointers.current.set(event.pointerId, {
-      x: event.clientX,
-      y: event.clientY,
-    });
-    if (mapPointers.current.size === 2) {
-      event.preventDefault();
+    if (mapZoom > 1) {
+      isPanning.current = true;
+      panStart.current = {
+        x: event.clientX - panOffset.x,
+        y: event.clientY - panOffset.y,
+      };
       try {
         event.currentTarget.setPointerCapture(event.pointerId);
       } catch {
-        // ignore capture failure
+        // ignore
       }
-      const pointers = [...mapPointers.current.values()];
-      pinchDistance.current = Math.hypot(
-        pointers[0].x - pointers[1].x,
-        pointers[0].y - pointers[1].y,
-      );
     }
   };
+
   const handleMapPointerMove = (event: PointerEvent<SVGSVGElement>) => {
-    const pointer = mapPointers.current.get(event.pointerId);
-    if (!pointer) return;
     if (pointerStart.current) {
       const dist = Math.hypot(
         event.clientX - pointerStart.current.x,
@@ -963,37 +918,51 @@ export default function MapView({
       );
       if (dist > 5) pointerDragged.current = true;
     }
-    pointer.x = event.clientX;
-    pointer.y = event.clientY;
-    if (mapPointers.current.size !== 2 || !pinchDistance.current) return;
-    event.preventDefault();
-    const pointers = [...mapPointers.current.values()];
-    const distance = Math.hypot(
-      pointers[0].x - pointers[1].x,
-      pointers[0].y - pointers[1].y,
-    );
-    setMapZoom((zoom) =>
-      Math.min(6, Math.max(1, zoom * (distance / pinchDistance.current!))),
-    );
-    pinchDistance.current = distance;
+    if (isPanning.current && mapZoom > 1) {
+      const dx = event.clientX - panStart.current.x;
+      const dy = event.clientY - panStart.current.y;
+      setPanOffset({ x: dx, y: dy });
+    }
   };
+
   const handleMapPointerUp = (event: PointerEvent<SVGSVGElement>) => {
-    mapPointers.current.delete(event.pointerId);
-    if (mapPointers.current.size < 2) pinchDistance.current = null;
-    if (event.currentTarget.hasPointerCapture(event.pointerId))
-      event.currentTarget.releasePointerCapture(event.pointerId);
+    isPanning.current = false;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      try {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    if (mode !== "profile" || readOnly) return;
+    if (event.ctrlKey || event.metaKey) {
+      event.preventDefault();
+      const factor = event.deltaY < 0 ? 1.18 : 0.84;
+      setMapZoom((z) => {
+        const next = Math.min(6, Math.max(1, +(z * factor).toFixed(2)));
+        if (next === 1) setPanOffset({ x: 0, y: 0 });
+        return next;
+      });
+    }
   };
 
   const map = (
     <div
       className={`map-panel ${mode === "globe" ? "globe-panel" : "profile-map-panel"}`}
+      onWheel={mode === "profile" && !readOnly ? handleWheel : undefined}
     >
       <svg
         ref={mode === "profile" && !readOnly ? profileMapRef : undefined}
         className={mode === "globe" ? "globe-map" : "world-map"}
         style={
           mode === "profile" && !readOnly
-            ? { transform: `scale(${mapZoom})` }
+            ? {
+                transform: `scale(${mapZoom}) translate(${panOffset.x / mapZoom}px, ${panOffset.y / mapZoom}px)`,
+                cursor: mapZoom > 1 ? "grab" : undefined,
+              }
             : undefined
         }
         viewBox={`0 0 ${mapWidth} ${mapHeight}`}
@@ -1160,6 +1129,48 @@ export default function MapView({
           </g>
         )}
       </svg>
+      {mode === "profile" && !readOnly && (
+        <div className="map-zoom-controls">
+          <button
+            type="button"
+            className="map-zoom-button"
+            onClick={() => setMapZoom((z) => Math.min(6, +(z * 1.3).toFixed(2)))}
+            title={language === "ru" ? "Приблизить карту" : "Zoom in"}
+            aria-label={language === "ru" ? "Приблизить карту" : "Zoom in"}
+          >
+            +
+          </button>
+          <button
+            type="button"
+            className="map-zoom-button"
+            onClick={() =>
+              setMapZoom((z) => {
+                const next = Math.max(1, +(z / 1.3).toFixed(2));
+                if (next === 1) setPanOffset({ x: 0, y: 0 });
+                return next;
+              })
+            }
+            title={language === "ru" ? "Отдалить карту" : "Zoom out"}
+            aria-label={language === "ru" ? "Отдалить карту" : "Zoom out"}
+          >
+            −
+          </button>
+          {mapZoom > 1 && (
+            <button
+              type="button"
+              className="map-zoom-button map-zoom-reset"
+              onClick={() => {
+                setMapZoom(1);
+                setPanOffset({ x: 0, y: 0 });
+              }}
+              title={language === "ru" ? "Сбросить масштаб" : "Reset zoom"}
+              aria-label={language === "ru" ? "Сбросить масштаб" : "Reset zoom"}
+            >
+              ↺
+            </button>
+          )}
+        </div>
+      )}
       {mode === "profile" && !readOnly && (
         <div className="map-overlay-label">
           <span className="plane-icon">✈</span>

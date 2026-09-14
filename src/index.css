@@ -34,7 +34,7 @@ a:hover {
   opacity: 0.7;
 }
 .site-shell {
-  overflow: hidden;
+  overflow-x: hidden;
   background: #f7f4ed;
 }
 .container {
@@ -1107,7 +1107,10 @@ h2 em,
   margin-bottom: 14px;
 }
 .profile-map-panel {
+  position: relative;
   min-height: 430px !important;
+  overflow: hidden;
+  touch-action: pan-y;
 }
 .profile-map-panel .country.visited {
   fill: #dcf2df !important;
@@ -1119,8 +1122,12 @@ h2 em,
   stroke: #387f58 !important;
 }
 .profile-map-panel .world-map {
+  width: 100%;
   height: 430px;
-  transform: none;
+  display: block;
+  transform-origin: center center;
+  touch-action: pan-y;
+  user-select: none;
 }
 @media (max-width: 800px) {
   .globe-panel {
@@ -1311,7 +1318,6 @@ h2 em,
   stroke: none !important;
 }
 .profile-map-panel .world-map {
-  touch-action: none;
   transform-origin: center;
 }
 .clear-places-button {
@@ -1359,8 +1365,7 @@ h2 em,
   }
 }
 .profile-map-panel {
-  touch-action: none;
-  overscroll-behavior: none;
+  touch-action: pan-y;
 }
 .member-welcome {
   min-height: 560px;
@@ -1846,3 +1851,49 @@ h2 em,
   fill: var(--paper) !important;
   stroke: none !important;
 }
+
+.map-zoom-controls {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 6;
+}
+
+.map-zoom-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  border: 1px solid rgba(23, 63, 59, 0.25);
+  background: rgba(247, 244, 237, 0.92);
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(23, 63, 59, 0.1);
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.map-zoom-button:hover {
+  background: #ffffff;
+  border-color: var(--coral);
+  color: var(--coral);
+  transform: scale(1.08);
+}
+
+.map-zoom-button:active {
+  transform: scale(0.95);
+}
+
+.map-zoom-reset {
+  font-size: 14px;
+}
+
