@@ -443,7 +443,16 @@ export default function MapView({
   mode = "globe",
   places: propPlaces,
 }: MapViewProps) {
-  const [internalPlaces, setInternalPlaces] = useState<VisitedPlace[]>([]);
+  const [internalPlaces, setInternalPlaces] = useState<VisitedPlace[]>(() => {
+    if (propPlaces !== undefined) return propPlaces;
+    try {
+      const cached = window.localStorage.getItem("skyring-guest-places");
+      if (cached) return normalizePlaces(JSON.parse(cached));
+    } catch {
+      // ignore
+    }
+    return [];
+  });
   const places = propPlaces !== undefined ? propPlaces : internalPlaces;
   const setPlaces = (next: VisitedPlace[]) => {
     setInternalPlaces(next);
@@ -482,8 +491,8 @@ export default function MapView({
       .clipAngle(90)
       .fitExtent(
         [
-          [48, 38],
-          [572, 462],
+          [68, 8],
+          [552, 492],
         ],
         { type: "Sphere" },
       );
@@ -513,41 +522,56 @@ export default function MapView({
         setPlaces([]);
       }
       setLoading(false);
-      return () => {
-        active = false;
-      };
+    } else {
+      setLoading(true);
+      getDoc(doc(db, "users", user.uid))
+        .then((snapshot) => {
+          if (!active) return;
+          const resetKey = `skyring-map-reset-${user.uid}-v1`;
+          if (!window.localStorage.getItem(resetKey)) {
+            setPlaces([]);
+            onPlacesChangeRef.current?.([]);
+            window.localStorage.setItem(resetKey, "done");
+            void setDoc(
+              doc(db, "users", user.uid),
+              { visitedCountries: [] },
+              { merge: true },
+            );
+          } else {
+            const savedPlaces =
+              (snapshot.data()?.visitedCountries as VisitedPlace[] | undefined) ??
+              [];
+            const normalized = normalizePlaces(savedPlaces);
+            setPlaces(normalized);
+            onPlacesChangeRef.current?.(normalized);
+          }
+          setLoading(false);
+        })
+        .catch(() => {
+          if (active) setLoading(false);
+        });
     }
 
-    setLoading(true);
-    getDoc(doc(db, "users", user.uid))
-      .then((snapshot) => {
-        if (!active) return;
-        const resetKey = `skyring-map-reset-${user.uid}-v1`;
-        if (!window.localStorage.getItem(resetKey)) {
-          setPlaces([]);
-          onPlacesChangeRef.current?.([]);
-          window.localStorage.setItem(resetKey, "done");
-          void setDoc(
-            doc(db, "users", user.uid),
-            { visitedCountries: [] },
-            { merge: true },
-          );
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "skyring-guest-places") {
+        if (e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            const normalized = normalizePlaces(parsed);
+            setPlaces(normalized);
+          } catch {
+            // ignore
+          }
         } else {
-          const savedPlaces =
-            (snapshot.data()?.visitedCountries as VisitedPlace[] | undefined) ??
-            [];
-          const normalized = normalizePlaces(savedPlaces);
-          setPlaces(normalized);
-          onPlacesChangeRef.current?.(normalized);
+          setPlaces([]);
         }
-        setLoading(false);
-      })
-      .catch(() => {
-        if (active) setLoading(false);
-      });
+      }
+    };
+    window.addEventListener("storage", handleStorage);
 
     return () => {
       active = false;
+      window.removeEventListener("storage", handleStorage);
     };
   }, [user]);
 
@@ -1007,7 +1031,7 @@ export default function MapView({
         {mode === "globe" && (
           <defs>
             <clipPath id="globe-clip">
-              <circle cx="310" cy="270" r="270" />
+              <circle cx="310" cy="250" r="243" />
             </clipPath>
           </defs>
         )}
@@ -1016,7 +1040,7 @@ export default function MapView({
           onPointerLeave={mode === "globe" ? handlePointerLeave : undefined}
         >
           {mode === "globe" && (
-            <circle className="globe-ocean" cx="310" cy="250" r="220" />
+            <circle className="globe-ocean" cx="310" cy="250" r="242" />
           )}
           <g
             className="country-shapes"
@@ -1031,14 +1055,16 @@ export default function MapView({
                 }
                 d={pathGenerator(country) ?? undefined}
                 key={countryKey(country)}
-                style={{ cursor: !readOnly ? "pointer" : "default" }}
+                style={{
+                  cursor: !readOnly && mode !== "globe" ? "pointer" : "default",
+                }}
                 onClick={(event) => {
                   event.stopPropagation();
                   if (pointerDragged.current) return;
-                  if (!readOnly) void addCountry(country);
+                  if (!readOnly && mode !== "globe") void addCountry(country);
                 }}
                 onKeyDown={
-                  !readOnly
+                  !readOnly && mode !== "globe"
                     ? (event) => {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
@@ -1047,13 +1073,13 @@ export default function MapView({
                       }
                     : undefined
                 }
-                role={!readOnly ? "button" : undefined}
-                tabIndex={!readOnly ? 0 : undefined}
+                role={!readOnly && mode !== "globe" ? "button" : undefined}
+                tabIndex={!readOnly && mode !== "globe" ? 0 : undefined}
               >
                 <title>
                   {country.properties?.name ??
                     (language === "ru" ? "Страна" : "Country")}
-                  {!readOnly
+                  {!readOnly && mode !== "globe"
                     ? language === "ru"
                       ? " - нажмите, чтобы отметить или снять отметку"
                       : " - click to mark or unmark"

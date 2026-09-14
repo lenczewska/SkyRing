@@ -1050,12 +1050,12 @@ h2 em,
 .globe-panel {
   position: relative;
   display: grid;
-  min-height: 482px !important;
+  min-height: 520px !important;
   place-items: center;
   overflow: hidden;
   border: 0 !important;
   background: transparent;
-  cursor: arrow;
+  cursor: grab;
 }
 .globe-panel:active {
   cursor: grabbing;
@@ -1065,8 +1065,8 @@ h2 em,
   z-index: 1;
   display: block;
   width: 100%;
-  max-width: 620px;
-  height: 482px;
+  max-width: 650px;
+  height: 520px;
   touch-action: none;
 }
 .globe-ocean {
@@ -1077,18 +1077,20 @@ h2 em,
   fill: transparent;
   stroke: rgba(23, 63, 59, 0.72);
   stroke-width: 0.42;
-  cursor: pointer;
+  cursor: inherit;
+  pointer-events: none;
 }
 .globe-panel .country:hover,
 .globe-panel .country:focus {
   fill: transparent !important;
-  stroke: var(--ink);
+  stroke: rgba(23, 63, 59, 0.72) !important;
   outline: none;
 }
 .globe-panel .country.visited {
   fill: #dcf2df !important;
   stroke: #387f58 !important;
   stroke-width: 0.8 !important;
+  pointer-events: none;
 }
 .globe-panel .country.visited:hover {
   fill: #dcf2df !important;
@@ -1122,10 +1124,10 @@ h2 em,
 }
 @media (max-width: 800px) {
   .globe-panel {
-    min-height: 390px !important;
+    min-height: 420px !important;
   }
   .globe-map {
-    height: 390px;
+    height: 420px;
   }
   .globe-panel .map-overlay-label {
     right: 12px;

@@ -8,5 +8,5 @@ type GlobeViewProps = {
 }
 
 export default function GlobeView({ user, language, onRequestAuth }: GlobeViewProps) {
-  return <MapView mode="globe" user={user} language={language} onRequestAuth={onRequestAuth} />
+  return <MapView mode="globe" readOnly user={user} language={language} onRequestAuth={onRequestAuth} />
 }
