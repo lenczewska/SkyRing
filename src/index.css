@@ -1350,7 +1350,53 @@ h2 em,
   touch-action: none;
   overscroll-behavior: none;
 }
-.member-welcome { min-height: 560px; padding-top: 75px; padding-bottom: 90px; }.member-welcome h1 { max-width: 820px; margin-top: 22px; font-size: clamp(54px, 8vw, 102px); line-height: .92; }.member-welcome h1 em { color: var(--coral); font-style: normal; }.member-welcome .hero-description { max-width: 520px; }.member-welcome-actions { display: flex; align-items: center; gap: 24px; margin-top: 32px; }.member-welcome-actions span { color: #55706b; font-size: 12px; }.member-feed { display: grid; grid-template-columns: 1.2fr .8fr; gap: 70px; padding: 70px 0 100px; border-top: 1px solid var(--ink); }.member-feed h2 { max-width: 620px; margin-top: 14px; font-size: clamp(34px, 5vw, 62px); line-height: 1; }.member-feed > p { max-width: 300px; color: #55706b; font-size: 14px; line-height: 1.7; }
+.member-welcome {
+  min-height: 560px;
+  padding-top: 75px;
+  padding-bottom: 90px;
+}
+.member-welcome h1 {
+  max-width: 820px;
+  margin-top: 22px;
+  font-size: clamp(54px, 8vw, 102px);
+  line-height: 0.92;
+}
+.member-welcome h1 em {
+  color: var(--coral);
+  font-style: normal;
+}
+.member-welcome .hero-description {
+  max-width: 520px;
+}
+.member-welcome-actions {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-top: 32px;
+}
+.member-welcome-actions span {
+  color: #55706b;
+  font-size: 12px;
+}
+.member-feed {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 70px;
+  padding: 70px 0 100px;
+  border-top: 1px solid var(--ink);
+}
+.member-feed h2 {
+  max-width: 620px;
+  margin-top: 14px;
+  font-size: clamp(34px, 5vw, 62px);
+  line-height: 1;
+}
+.member-feed > p {
+  max-width: 300px;
+  color: #55706b;
+  font-size: 14px;
+  line-height: 1.7;
+}
 .guest-map-intro,
 .guest-post-intro {
   max-width: 820px;
@@ -1364,7 +1410,7 @@ h2 em,
   color: var(--coral);
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: .16em;
+  letter-spacing: 0.16em;
 }
 .guest-map-intro h2,
 .guest-post-intro h2 {
@@ -1694,6 +1740,10 @@ h2 em,
 .empty-state {
   color: #55706b;
   font-size: 13px;
+}
+.profileView {
+  display: flex;
+  justify-items: center;
 }
 @media (max-width: 800px) {
   .subpage {

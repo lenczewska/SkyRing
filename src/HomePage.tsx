@@ -62,7 +62,8 @@ export default function HomePage({
         : "Your next destination is waiting.";
     return (
       <>
-        <section className="member-welcome container">
+        <div className="profileView container">
+          <section className="member-welcome container">
           <p className="eyebrow">
             <span /> {language === "ru" ? "СНОВА В ПУТИ" : "BACK ON THE ROAD"}
           </p>
@@ -71,6 +72,7 @@ export default function HomePage({
             <br />
             <em>{title}</em>
           </h2>
+          
           <p className="hero-description">{description}</p>
           <div className="member-welcome-actions">
             <button
@@ -84,8 +86,18 @@ export default function HomePage({
               ↗
             </button>
             <span>{note}</span>
+            
           </div>
         </section>
+        <section>
+          <GlobeView
+          language={language}
+          user={user}
+          onRequestAuth={onRequestAuth}
+        />
+        </section>
+        </div>
+        
         <section className="member-feed container">
           <div>
             <p className="section-label">

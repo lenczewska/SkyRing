@@ -46,6 +46,10 @@ function countryKey(country: any) {
   return String(country.id ?? country.properties?.name ?? "");
 }
 
+function isCountryPlace(place: VisitedPlace) {
+  return place.kind === "country" || place.kind == null;
+}
+
 export default function MapView({
   user,
   onRequestAuth,
