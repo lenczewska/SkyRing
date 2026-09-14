@@ -42,7 +42,189 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
     setSaved(true)
   }
 
+  const removePlace = async (placeId: string) => {
+    const nextPlaces = places.filter((place) => place.id !== placeId)
+    setPlaces(nextPlaces)
+    if (selectedId === placeId) setSelectedId(null)
+    window.localStorage.setItem('skyring-guest-places', JSON.stringify(nextPlaces))
+    if (user) {
+      try {
+        await setDoc(doc(db, 'users', user.uid), { visitedCountries: nextPlaces }, { merge: true })
+      } catch (err) {
+        console.warn('Could not sync removal to firestore:', err)
+      }
+    }
+  }
+
   const selectedPlace = places.find((place) => place.id === selectedId)
 
-  return <section className="subpage container travel-map-page"><p className="eyebrow"><span /> {copy.eyebrow}</p><h1>{copy.title}</h1><p className="subpage-intro">{copy.intro}</p>{!user && <section className="guest-map-intro"><p className="guest-map-kicker">{language === 'ru' ? 'ВАША БУДУЩАЯ ИСТОРИЯ' : 'YOUR FUTURE STORY'}</p><h2>{language === 'ru' ? 'Здесь будут отмечены ваши истории путешествий.' : 'This is where your travel stories will live.'}</h2><p>{language === 'ru' ? 'Отмечайте города, где вы были, пишите воспоминания и делитесь впечатлениями о каждой поездке и стране.' : 'Mark the cities you have visited, write memories, and keep your impressions of every trip and country.'}</p><button className="button button-coral" onClick={onRequestAuth} type="button">{language === 'ru' ? 'Начать свою историю' : 'Start your story'} ↗</button></section>}<MapView mode="profile" readOnly={!user} user={user} language={language} onPlacesChange={handlePlacesChange} onRequestAuth={onRequestAuth} />{user && <><section className="marked-places"><p className="section-label">{copy.list}</p>{places.length === 0 ? <p className="empty-state">{copy.empty}</p> : <div className="place-list">{places.map((place) => <button className={`place-list-item ${selectedId === place.id ? 'place-list-item-active' : ''}`} key={place.id} onClick={() => selectPlace(place)} type="button"><span className="place-list-dot" /><span><strong>{place.label}</strong><small>{place.latitude.toFixed(3)}, {place.longitude.toFixed(3)}</small></span><span aria-hidden="true">↗</span></button>)}</div>}</section><section className="place-detail-panel">{selectedPlace ? <><p className="section-label">{copy.details}</p><h2>{selectedPlace.label}</h2><label>{copy.story}<textarea value={draft.story ?? ''} onChange={(event) => setDraft({ ...draft, story: event.target.value })} placeholder={copy.placeholder} /></label><div className="detail-grid"><label>{copy.date}<input type="date" value={draft.date ?? ''} onChange={(event) => setDraft({ ...draft, date: event.target.value })} /></label><label>{copy.airline}<input value={draft.airline ?? ''} onChange={(event) => setDraft({ ...draft, airline: event.target.value })} placeholder="e.g. AZAL" /></label></div><label>{copy.photos}<input type="file" accept="image/*" multiple onChange={(event) => setDraft({ ...draft, photos: Array.from(event.target.files ?? []).map((file) => URL.createObjectURL(file)) })} /></label>{draft.photos && <div className="detail-photo-preview">{draft.photos.map((photo) => <img src={photo} alt={selectedPlace.label} key={photo} />)}</div>}<button className="button button-coral" onClick={() => void saveDetails()} type="button">{saved ? copy.saved : copy.save}</button></> : <p className="empty-state">{copy.choose}</p>}</section></>}</section>
+  return (
+    <section className="subpage container travel-map-page">
+      <p className="eyebrow"><span /> {copy.eyebrow}</p>
+      <h1>{copy.title}</h1>
+      <p className="subpage-intro">{copy.intro}</p>
+
+      {!user && (
+        <section className="guest-map-intro">
+          <p className="guest-map-kicker">
+            {language === 'ru' ? 'ВАША БУДУЩАЯ ИСТОРИЯ' : 'YOUR FUTURE STORY'}
+          </p>
+          <h2>
+            {language === 'ru'
+              ? 'Здесь будут отмечены ваши истории путешествий.'
+              : 'This is where your travel stories will live.'}
+          </h2>
+          <p>
+            {language === 'ru'
+              ? 'Отмечайте города, где вы были, пишите воспоминания и делитесь впечатлениями о каждой поездке и стране.'
+              : 'Mark the cities you have visited, write memories, and keep your impressions of every trip and country.'}
+          </p>
+          <button className="button button-coral" onClick={onRequestAuth} type="button">
+            {language === 'ru' ? 'Начать свою историю' : 'Start your story'} ↗
+          </button>
+        </section>
+      )}
+
+      <MapView
+        mode="profile"
+        readOnly={false}
+        user={user}
+        language={language}
+        places={places}
+        onPlacesChange={handlePlacesChange}
+        onRequestAuth={onRequestAuth}
+      />
+
+      {user && (
+        <>
+          <section className="marked-places">
+            <p className="section-label">{copy.list}</p>
+            {places.length === 0 ? (
+              <p className="empty-state">{copy.empty}</p>
+            ) : (
+              <div className="place-list">
+                {places.map((place) => (
+                  <div
+                    className={`place-list-item ${selectedId === place.id ? 'place-list-item-active' : ''}`}
+                    key={place.id}
+                    onClick={() => selectPlace(place)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        selectPlace(place)
+                      }
+                    }}
+                  >
+                    <span className="place-list-dot" />
+                    <span className="place-list-info">
+                      <strong>{place.label}</strong>
+                      <small>{place.latitude.toFixed(3)}, {place.longitude.toFixed(3)}</small>
+                    </span>
+                    <div className="place-card-actions">
+                      <button
+                        className="place-card-delete"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void removePlace(place.id)
+                        }}
+                        type="button"
+                        title={language === 'ru' ? 'Удалить место' : 'Remove place'}
+                        aria-label={language === 'ru' ? 'Удалить место' : 'Remove place'}
+                      >
+                        <svg
+                          width="8"
+                          height="8"
+                          viewBox="0 0 10 10"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        >
+                          <path d="M1.5 1.5L8.5 8.5M8.5 1.5L1.5 8.5" />
+                        </svg>
+                      </button>
+                      <span className="place-list-arrow" aria-hidden="true">↗</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="place-detail-panel">
+            {selectedPlace ? (
+              <>
+                <p className="section-label">{copy.details}</p>
+                <h2>{selectedPlace.label}</h2>
+                <label>
+                  {copy.story}
+                  <textarea
+                    value={draft.story ?? ''}
+                    onChange={(event) => setDraft({ ...draft, story: event.target.value })}
+                    placeholder={copy.placeholder}
+                  />
+                </label>
+                <div className="detail-grid">
+                  <label>
+                    {copy.date}
+                    <input
+                      type="date"
+                      value={draft.date ?? ''}
+                      onChange={(event) => setDraft({ ...draft, date: event.target.value })}
+                    />
+                  </label>
+                  <label>
+                    {copy.airline}
+                    <input
+                      value={draft.airline ?? ''}
+                      onChange={(event) => setDraft({ ...draft, airline: event.target.value })}
+                      placeholder="e.g. AZAL"
+                    />
+                  </label>
+                </div>
+                <label>
+                  {copy.photos}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(event) =>
+                      setDraft({
+                        ...draft,
+                        photos: Array.from(event.target.files ?? []).map((file) => URL.createObjectURL(file)),
+                      })
+                    }
+                  />
+                </label>
+                {draft.photos && (
+                  <div className="detail-photo-preview">
+                    {draft.photos.map((photo) => (
+                      <img src={photo} alt={selectedPlace.label} key={photo} />
+                    ))}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+                  <button className="button button-coral" onClick={() => void saveDetails()} type="button">
+                    {saved ? copy.saved : copy.save}
+                  </button>
+                  <button
+                    className="button button-outline"
+                    onClick={() => void removePlace(selectedPlace.id)}
+                    type="button"
+                    style={{ borderColor: '#e76f51', color: '#e76f51' }}
+                  >
+                    {language === 'ru' ? 'Удалить место' : 'Remove place'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="empty-state">{copy.choose}</p>
+            )}
+          </section>
+        </>
+      )}
+    </section>
+  )
 }
