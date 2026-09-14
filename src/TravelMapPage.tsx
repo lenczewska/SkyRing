@@ -18,6 +18,7 @@ const TRANSPORT_OPTIONS_RU = [
   'Мотоцикл',
   'Велосипед',
   'Пешком',
+  'Другое',
 ]
 
 const TRANSPORT_OPTIONS_EN = [
@@ -29,6 +30,7 @@ const TRANSPORT_OPTIONS_EN = [
   'Motorcycle',
   'Bicycle',
   'On foot',
+  'Other',
 ]
 
 export default function TravelMapPage({ user, language, onRequestAuth }: TravelMapPageProps) {
@@ -41,8 +43,6 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
 
   const currentTransport = draft.transport ?? draft.airline ?? ''
   const transportOptions = language === 'ru' ? TRANSPORT_OPTIONS_RU : TRANSPORT_OPTIONS_EN
-  const isCustomTransport =
-    Boolean(currentTransport) && !transportOptions.includes(currentTransport)
 
   const handlePlacesChange = useCallback((nextPlaces: VisitedPlace[]) => {
     setPlaces(nextPlaces)
@@ -205,25 +205,14 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
                   <label>
                     {copy.transport}
                     <select
-                      value={
-                        transportOptions.includes(currentTransport)
-                          ? currentTransport
-                          : isCustomTransport
-                            ? '__other__'
-                            : ''
+                      value={currentTransport}
+                      onChange={(event) =>
+                        setDraft({
+                          ...draft,
+                          transport: event.target.value,
+                          airline: event.target.value,
+                        })
                       }
-                      onChange={(event) => {
-                        const val = event.target.value
-                        if (val === '__other__') {
-                          setDraft({
-                            ...draft,
-                            transport: language === 'ru' ? 'Другое' : 'Other',
-                            airline: language === 'ru' ? 'Другое' : 'Other',
-                          })
-                        } else {
-                          setDraft({ ...draft, transport: val, airline: val })
-                        }
-                      }}
                     >
                       <option value="">
                         {language === 'ru' ? 'Выберите вид транспорта...' : 'Choose transport...'}
@@ -233,33 +222,10 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
                           {opt}
                         </option>
                       ))}
-                      <option value="__other__">
-                        {language === 'ru' ? 'Другое / Свой вариант...' : 'Other / Custom...'}
-                      </option>
+                      {!transportOptions.includes(currentTransport) && currentTransport && (
+                        <option value={currentTransport}>{currentTransport}</option>
+                      )}
                     </select>
-                    {isCustomTransport && (
-                      <input
-                        type="text"
-                        style={{ marginTop: '8px' }}
-                        value={
-                          currentTransport === 'Другое' || currentTransport === 'Other'
-                            ? ''
-                            : currentTransport
-                        }
-                        onChange={(event) =>
-                          setDraft({
-                            ...draft,
-                            transport: event.target.value,
-                            airline: event.target.value,
-                          })
-                        }
-                        placeholder={
-                          language === 'ru'
-                            ? 'Укажите вид транспорта...'
-                            : 'Specify transport...'
-                        }
-                      />
-                    )}
                   </label>
                 </div>
                 <label>
