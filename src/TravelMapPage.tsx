@@ -5,9 +5,9 @@ import MapView, { type VisitedPlace } from './MapView'
 import { db } from './firebase'
 
 type TravelMapPageProps = { user: User | null; language: 'en' | 'ru'; onRequestAuth: () => void }
-type PlaceDetails = { story?: string; date?: string; airline?: string; photos?: string[] }
+type PlaceDetails = { story?: string; date?: string; transport?: string; airline?: string; photos?: string[] }
 
-type Copy = { eyebrow: string; title: string; intro: string; list: string; empty: string; details: string; story: string; date: string; airline: string; photos: string; save: string; saved: string; placeholder: string; choose: string }
+type Copy = { eyebrow: string; title: string; intro: string; list: string; empty: string; details: string; story: string; date: string; transport: string; transportPlaceholder: string; photos: string; save: string; saved: string; placeholder: string; choose: string }
 
 export default function TravelMapPage({ user, language, onRequestAuth }: TravelMapPageProps) {
   const [places, setPlaces] = useState<VisitedPlace[]>([])
@@ -15,7 +15,7 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
   const [details, setDetails] = useState<Record<string, PlaceDetails>>({})
   const [draft, setDraft] = useState<PlaceDetails>({})
   const [saved, setSaved] = useState(false)
-  const copy: Copy = language === 'ru' ? { eyebrow: 'КАРТА ПУТЕШЕСТВ', title: 'Места, которые остались с вами.', intro: 'Отмечайте города и страны, а затем добавляйте к каждому месту воспоминания.', list: 'ОТМЕЧЕННЫЕ МЕСТА', empty: 'Пока нет отмеченных городов.', details: 'Детали поездки', story: 'Ваше впечатление', date: 'Дата поездки', airline: 'Авиакомпания', photos: 'Фотографии', save: 'Сохранить детали', saved: 'Сохранено', placeholder: 'Напишите ваше впечатление об этой поездке.', choose: 'Выберите город ниже, чтобы добавить детали.' } : { eyebrow: 'TRAVEL MAP', title: 'Places that stayed with you.', intro: 'Mark cities and countries, then add memories to each place.', list: 'MARKED PLACES', empty: 'No cities marked yet.', details: 'Trip details', story: 'Your impression', date: 'Trip date', airline: 'Airline', photos: 'Photos', save: 'Save details', saved: 'Saved', placeholder: 'Write your impression of this trip.', choose: 'Choose a city below to add details.' }
+  const copy: Copy = language === 'ru' ? { eyebrow: 'КАРТА ПУТЕШЕСТВ', title: 'Места, которые остались с вами.', intro: 'Отмечайте города и страны, а затем добавляйте к каждому месту воспоминания.', list: 'ОТМЕЧЕННЫЕ МЕСТА', empty: 'Пока нет отмеченных городов.', details: 'Детали поездки', story: 'Ваше впечатление', date: 'Дата поездки', transport: 'Вид транспорта', transportPlaceholder: 'например: поезд, автобус, самолёт...', photos: 'Фотографии', save: 'Сохранить детали', saved: 'Сохранено', placeholder: 'Напишите ваше впечатление об этой поездке.', choose: 'Выберите город ниже, чтобы добавить детали.' } : { eyebrow: 'TRAVEL MAP', title: 'Places that stayed with you.', intro: 'Mark cities and countries, then add memories to each place.', list: 'MARKED PLACES', empty: 'No cities marked yet.', details: 'Trip details', story: 'Your impression', date: 'Trip date', transport: 'Transport', transportPlaceholder: 'e.g. Train, bus, plane...', photos: 'Photos', save: 'Save details', saved: 'Saved', placeholder: 'Write your impression of this trip.', choose: 'Choose a city below to add details.' }
 
   const handlePlacesChange = useCallback((nextPlaces: VisitedPlace[]) => {
     setPlaces(nextPlaces)
@@ -176,12 +176,42 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
                     />
                   </label>
                   <label>
-                    {copy.airline}
+                    {copy.transport}
                     <input
-                      value={draft.airline ?? ''}
-                      onChange={(event) => setDraft({ ...draft, airline: event.target.value })}
-                      placeholder="e.g. AZAL"
+                      list="transport-options"
+                      value={draft.transport ?? draft.airline ?? ''}
+                      onChange={(event) =>
+                        setDraft({
+                          ...draft,
+                          transport: event.target.value,
+                          airline: event.target.value,
+                        })
+                      }
+                      placeholder={copy.transportPlaceholder}
                     />
+                    <datalist id="transport-options">
+                      {language === 'ru' ? (
+                        <>
+                          <option value="Самолёт" />
+                          <option value="Поезд" />
+                          <option value="Автобус" />
+                          <option value="Автомобиль" />
+                          <option value="Корабль / Паром" />
+                          <option value="Мотоцикл" />
+                          <option value="Велосипед" />
+                        </>
+                      ) : (
+                        <>
+                          <option value="Plane" />
+                          <option value="Train" />
+                          <option value="Bus" />
+                          <option value="Car" />
+                          <option value="Ferry / Ship" />
+                          <option value="Motorcycle" />
+                          <option value="Bicycle" />
+                        </>
+                      )}
+                    </datalist>
                   </label>
                 </div>
                 <label>
