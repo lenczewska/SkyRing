@@ -956,8 +956,6 @@ h2 em,
   display: block;
   width: 100%;
   height: 482px;
-  transform: scale(1.08);
-  transform-origin: center;
 }
 .country {
   fill: transparent;
@@ -1044,7 +1042,6 @@ h2 em,
   }
   .world-map {
     height: 390px;
-    transform: scale(1.04);
   }
 }
 .globe-panel {
@@ -1110,7 +1107,7 @@ h2 em,
   position: relative;
   min-height: 430px !important;
   overflow: hidden;
-  touch-action: pan-y;
+  touch-action: none;
 }
 .profile-map-panel .country.visited {
   fill: #dcf2df !important;
@@ -1125,8 +1122,7 @@ h2 em,
   width: 100%;
   height: 430px;
   display: block;
-  transform-origin: center center;
-  touch-action: pan-y;
+  touch-action: none;
   user-select: none;
 }
 @media (max-width: 800px) {
@@ -1317,9 +1313,7 @@ h2 em,
   fill: var(--paper) !important;
   stroke: none !important;
 }
-.profile-map-panel .world-map {
-  transform-origin: center;
-}
+
 .clear-places-button {
   margin-top: 28px;
   padding: 0;
@@ -1365,7 +1359,7 @@ h2 em,
   }
 }
 .profile-map-panel {
-  touch-action: pan-y;
+  touch-action: none;
 }
 .member-welcome {
   min-height: 560px;

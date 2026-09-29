@@ -472,9 +472,18 @@ export default function MapView({
   const [searchError, setSearchError] = useState("");
   const [mapZoom, setMapZoom] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const isPanning = useRef(false);
-  const panStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isPanningState, setIsPanningState] = useState(false);
+  const mapPanelRef = useRef<HTMLDivElement | null>(null);
   const profileMapRef = useRef<SVGSVGElement | null>(null);
+  const activePointers = useRef<
+    Map<number, { clientX: number; clientY: number; svgX: number; svgY: number }>
+  >(new Map());
+  const initialPinchDistance = useRef<number | null>(null);
+  const initialPinchCenter = useRef<{ x: number; y: number } | null>(null);
+  const dragStartPos = useRef<{ x: number; y: number } | null>(null);
+  const panStartOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const hasDragged = useRef(false);
+  const lastHandledClick = useRef(0);
   const pointerStart = useRef<{ x: number; y: number } | null>(null);
   const pointerDragged = useRef(false);
   const onPlacesChangeRef = useRef(onPlacesChange);
@@ -866,6 +875,116 @@ export default function MapView({
     return () => window.cancelAnimationFrame(frame);
   }, [mode, dragging, hovering]);
 
+  const transformRef = useRef<{ zoom: number; x: number; y: number }>({
+    zoom: 1,
+    x: 0,
+    y: 0,
+  });
+
+  const getSvgPoint = (clientX: number, clientY: number): { x: number; y: number } => {
+    const svg = profileMapRef.current;
+    if (!svg) return { x: 480, y: 250 };
+    try {
+      const point = svg.createSVGPoint();
+      point.x = clientX;
+      point.y = clientY;
+      const ctm = svg.getScreenCTM();
+      if (ctm) {
+        const transformed = point.matrixTransform(ctm.inverse());
+        return { x: transformed.x, y: transformed.y };
+      }
+    } catch {
+      // fallback
+    }
+    const rect = svg.getBoundingClientRect();
+    return {
+      x: ((clientX - rect.left) / (rect.width || 1)) * 960,
+      y: ((clientY - rect.top) / (rect.height || 1)) * 500,
+    };
+  };
+
+  const applyTransform = (nextZoom: number, nextX: number, nextY: number) => {
+    const clampedZoom = Math.min(8, Math.max(1, Number(nextZoom.toFixed(3))));
+    let clampedX = nextX;
+    let clampedY = nextY;
+
+    if (clampedZoom === 1) {
+      clampedX = 0;
+      clampedY = 0;
+    } else {
+      const minX = 960 * (1 - clampedZoom);
+      const maxX = 0;
+      const minY = 500 * (1 - clampedZoom);
+      const maxY = 0;
+
+      clampedX = Math.max(minX - 50, Math.min(maxX + 50, clampedX));
+      clampedY = Math.max(minY - 40, Math.min(maxY + 40, clampedY));
+    }
+
+    transformRef.current = { zoom: clampedZoom, x: clampedX, y: clampedY };
+    setMapZoom(clampedZoom);
+    setPanOffset({ x: clampedX, y: clampedY });
+  };
+
+  const zoomAround = (targetZoom: number, focusSvgX = 480, focusSvgY = 250) => {
+    const current = transformRef.current;
+    const clampedZoom = Math.min(8, Math.max(1, Number(targetZoom.toFixed(3))));
+
+    if (clampedZoom === 1) {
+      applyTransform(1, 0, 0);
+      return;
+    }
+
+    const lx = (focusSvgX - current.x) / current.zoom;
+    const ly = (focusSvgY - current.y) / current.zoom;
+
+    const nextX = focusSvgX - lx * clampedZoom;
+    const nextY = focusSvgY - ly * clampedZoom;
+
+    applyTransform(clampedZoom, nextX, nextY);
+  };
+
+  useEffect(() => {
+    const panel = mapPanelRef.current;
+    if (!panel || mode !== "profile" || readOnly) return undefined;
+
+    const handleNativeWheel = (event: WheelEvent) => {
+      event.preventDefault();
+
+      const svgPt = getSvgPoint(event.clientX, event.clientY);
+      let factor = 1;
+      if (event.ctrlKey) {
+        factor = Math.exp(-event.deltaY * 0.015);
+      } else {
+        factor = event.deltaY < 0 ? 1.25 : 0.8;
+      }
+
+      zoomAround(transformRef.current.zoom * factor, svgPt.x, svgPt.y);
+    };
+
+    const handleTouchMovePrevent = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    const handleGesturePrevent = (e: Event) => {
+      e.preventDefault();
+    };
+
+    panel.addEventListener("wheel", handleNativeWheel, { passive: false });
+    panel.addEventListener("touchmove", handleTouchMovePrevent, { passive: false });
+    panel.addEventListener("gesturestart", handleGesturePrevent as any, { passive: false });
+    panel.addEventListener("gesturechange", handleGesturePrevent as any, { passive: false });
+
+    return () => {
+      panel.removeEventListener("wheel", handleNativeWheel);
+      panel.removeEventListener("touchmove", handleTouchMovePrevent);
+      panel.removeEventListener("gesturestart", handleGesturePrevent as any);
+      panel.removeEventListener("gesturechange", handleGesturePrevent as any);
+    };
+  }, [mode, readOnly]);
+
   const handlePointerDown = (event: PointerEvent<SVGSVGElement>) => {
     pointerStart.current = { x: event.clientX, y: event.clientY };
     pointerDragged.current = false;
@@ -888,83 +1007,148 @@ export default function MapView({
           event.clientY - pointerStart.current.y,
         );
         if (dist > 5) pointerDragged.current = true;
+        const dx = event.clientX - pointerStart.current.x;
+        setRotation((value) => value + dx * 0.25);
+        pointerStart.current = { x: event.clientX, y: event.clientY };
       }
-      setRotation((value) => value + event.movementX * 0.25);
     }
   };
 
   const handleMapPointerDown = (event: PointerEvent<SVGSVGElement>) => {
-    pointerStart.current = { x: event.clientX, y: event.clientY };
-    pointerDragged.current = false;
-    if (mapZoom > 1) {
-      isPanning.current = true;
-      panStart.current = {
-        x: event.clientX - panOffset.x,
-        y: event.clientY - panOffset.y,
-      };
-      try {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      } catch {
-        // ignore
+    const svgPt = getSvgPoint(event.clientX, event.clientY);
+    activePointers.current.set(event.pointerId, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      svgX: svgPt.x,
+      svgY: svgPt.y,
+    });
+
+    if (activePointers.current.size === 1) {
+      dragStartPos.current = { x: event.clientX, y: event.clientY };
+      panStartOffset.current = { x: svgPt.x, y: svgPt.y };
+      hasDragged.current = false;
+      if (transformRef.current.zoom > 1) {
+        setIsPanningState(true);
       }
+    } else if (activePointers.current.size === 2) {
+      hasDragged.current = true;
+      const pts = Array.from(activePointers.current.values());
+      const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+      initialPinchDistance.current = dist;
+
+      const midClientX = (pts[0].clientX + pts[1].clientX) / 2;
+      const midClientY = (pts[0].clientY + pts[1].clientY) / 2;
+      initialPinchCenter.current = getSvgPoint(midClientX, midClientY);
+      panStartOffset.current = { x: 0, y: 0 };
     }
   };
 
   const handleMapPointerMove = (event: PointerEvent<SVGSVGElement>) => {
-    if (pointerStart.current) {
-      const dist = Math.hypot(
-        event.clientX - pointerStart.current.x,
-        event.clientY - pointerStart.current.y,
-      );
-      if (dist > 5) pointerDragged.current = true;
-    }
-    if (isPanning.current && mapZoom > 1) {
-      const dx = event.clientX - panStart.current.x;
-      const dy = event.clientY - panStart.current.y;
-      setPanOffset({ x: dx, y: dy });
+    if (!activePointers.current.has(event.pointerId)) return;
+    const svgPt = getSvgPoint(event.clientX, event.clientY);
+    activePointers.current.set(event.pointerId, {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      svgX: svgPt.x,
+      svgY: svgPt.y,
+    });
+
+    if (activePointers.current.size >= 2) {
+      hasDragged.current = true;
+      const pts = Array.from(activePointers.current.values());
+      const dist = Math.hypot(pts[0].clientX - pts[1].clientX, pts[0].clientY - pts[1].clientY);
+      const midClientX = (pts[0].clientX + pts[1].clientX) / 2;
+      const midClientY = (pts[0].clientY + pts[1].clientY) / 2;
+      const currMidSvg = getSvgPoint(midClientX, midClientY);
+
+      if (initialPinchDistance.current && initialPinchDistance.current > 0 && initialPinchCenter.current) {
+        const ratio = dist / initialPinchDistance.current;
+        const current = transformRef.current;
+        const targetZoom = Math.min(8, Math.max(1, current.zoom * ratio));
+
+        const dMidX = currMidSvg.x - initialPinchCenter.current.x;
+        const dMidY = currMidSvg.y - initialPinchCenter.current.y;
+
+        const lx = (currMidSvg.x - current.x) / current.zoom;
+        const ly = (currMidSvg.y - current.y) / current.zoom;
+
+        const nextX = currMidSvg.x - lx * targetZoom + dMidX;
+        const nextY = currMidSvg.y - ly * targetZoom + dMidY;
+
+        applyTransform(targetZoom, nextX, nextY);
+      }
+
+      initialPinchDistance.current = dist;
+      initialPinchCenter.current = currMidSvg;
+    } else if (activePointers.current.size === 1) {
+      if (dragStartPos.current) {
+        const dist = Math.hypot(
+          event.clientX - dragStartPos.current.x,
+          event.clientY - dragStartPos.current.y,
+        );
+        if (dist > 7) {
+          hasDragged.current = true;
+        }
+      }
+
+      if (transformRef.current.zoom > 1 && hasDragged.current && panStartOffset.current) {
+        const dSvgX = svgPt.x - panStartOffset.current.x;
+        const dSvgY = svgPt.y - panStartOffset.current.y;
+        const current = transformRef.current;
+
+        applyTransform(current.zoom, current.x + dSvgX, current.y + dSvgY);
+      }
+
+      panStartOffset.current = { x: svgPt.x, y: svgPt.y };
     }
   };
 
   const handleMapPointerUp = (event: PointerEvent<SVGSVGElement>) => {
-    isPanning.current = false;
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      try {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      } catch {
-        // ignore
-      }
+    activePointers.current.delete(event.pointerId);
+
+    if (activePointers.current.size === 0) {
+      setIsPanningState(false);
+      initialPinchDistance.current = null;
+      initialPinchCenter.current = null;
+      dragStartPos.current = null;
+    } else if (activePointers.current.size === 1) {
+      const remaining = Array.from(activePointers.current.values())[0];
+      const svgPt = getSvgPoint(remaining.clientX, remaining.clientY);
+      dragStartPos.current = { x: remaining.clientX, y: remaining.clientY };
+      panStartOffset.current = { x: svgPt.x, y: svgPt.y };
+      initialPinchDistance.current = null;
+      initialPinchCenter.current = null;
     }
   };
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    if (mode !== "profile" || readOnly) return;
-    if (event.ctrlKey || event.metaKey) {
-      event.preventDefault();
-      const factor = event.deltaY < 0 ? 1.18 : 0.84;
-      setMapZoom((z) => {
-        const next = Math.min(6, Math.max(1, +(z * factor).toFixed(2)));
-        if (next === 1) setPanOffset({ x: 0, y: 0 });
-        return next;
-      });
+  const handleSvgClick = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (readOnly || mode === "globe") return;
+    if (hasDragged.current) return;
+    if (Date.now() - lastHandledClick.current < 200) return;
+
+    const svgPt = getSvgPoint(event.clientX, event.clientY);
+    const current = transformRef.current;
+    const mapX = (svgPt.x - current.x) / current.zoom;
+    const mapY = (svgPt.y - current.y) / current.zoom;
+
+    const geo = projection.invert ? projection.invert([mapX, mapY]) : null;
+    if (geo && !isNaN(geo[0]) && !isNaN(geo[1])) {
+      const feat = findCountryFeatureForCoord(geo[0], geo[1]);
+      if (feat) {
+        lastHandledClick.current = Date.now();
+        void addCountry(feat);
+      }
     }
   };
 
   const map = (
     <div
+      ref={mapPanelRef}
       className={`map-panel ${mode === "globe" ? "globe-panel" : "profile-map-panel"}`}
-      onWheel={mode === "profile" && !readOnly ? handleWheel : undefined}
     >
       <svg
-        ref={mode === "profile" && !readOnly ? profileMapRef : undefined}
+        ref={mode === "profile" ? profileMapRef : undefined}
         className={mode === "globe" ? "globe-map" : "world-map"}
-        style={
-          mode === "profile" && !readOnly
-            ? {
-                transform: `scale(${mapZoom}) translate(${panOffset.x / mapZoom}px, ${panOffset.y / mapZoom}px)`,
-                cursor: mapZoom > 1 ? "grab" : undefined,
-              }
-            : undefined
-        }
         viewBox={`0 0 ${mapWidth} ${mapHeight}`}
         role="img"
         aria-label={
@@ -972,6 +1156,16 @@ export default function MapView({
             ? "Rotating interactive globe"
             : "Interactive world map"
         }
+        style={{
+          touchAction: "none",
+          cursor:
+            mode === "profile" && !readOnly && mapZoom > 1
+              ? isPanningState
+                ? "grabbing"
+                : "grab"
+              : undefined,
+        }}
+        onClick={mode === "profile" && !readOnly ? handleSvgClick : undefined}
         onPointerDown={
           mode === "globe"
             ? handlePointerDown
@@ -1005,136 +1199,162 @@ export default function MapView({
           </defs>
         )}
         <g
-          onPointerEnter={mode === "globe" ? handlePointerEnter : undefined}
-          onPointerLeave={mode === "globe" ? handlePointerLeave : undefined}
+          transform={
+            mode === "profile"
+              ? `translate(${panOffset.x}, ${panOffset.y}) scale(${mapZoom})`
+              : undefined
+          }
         >
-          {mode === "globe" && (
-            <circle className="globe-ocean" cx="310" cy="250" r="242" />
-          )}
           <g
-            className="country-shapes"
-            clipPath={mode === "globe" ? "url(#globe-clip)" : undefined}
+            onPointerEnter={mode === "globe" ? handlePointerEnter : undefined}
+            onPointerLeave={mode === "globe" ? handlePointerLeave : undefined}
           >
-            {countries.map((country) => (
-              <path
-                className={
-                  isCountryVisited(country)
-                    ? "country visited"
-                    : "country"
-                }
-                d={pathGenerator(country) ?? undefined}
-                key={countryKey(country)}
-                style={{
-                  cursor: !readOnly && mode !== "globe" ? "pointer" : "default",
-                }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  if (pointerDragged.current) return;
-                  if (!readOnly && mode !== "globe") void addCountry(country);
-                }}
-                onKeyDown={
-                  !readOnly && mode !== "globe"
-                    ? (event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          void addCountry(country);
-                        }
-                      }
-                    : undefined
-                }
-                role={!readOnly && mode !== "globe" ? "button" : undefined}
-                tabIndex={!readOnly && mode !== "globe" ? 0 : undefined}
-              >
-                <title>
-                  {country.properties?.name ??
-                    (language === "ru" ? "Страна" : "Country")}
-                  {!readOnly && mode !== "globe"
-                    ? language === "ru"
-                      ? " - нажмите, чтобы отметить или снять отметку"
-                      : " - click to mark or unmark"
-                    : ""}
-                </title>
-              </path>
-            ))}
-          </g>
-        </g>
-        {visiblePlaces.length > 0 && (
-          <g
-            className={
-              mode === "globe" ? "globe-place-markers" : "profile-place-markers"
-            }
-          >
-            {visiblePlaces.map((place) => {
-              const point = projection([place.longitude, place.latitude]);
-              return point ? (
-                <g
-                  className="map-place"
-                  key={place.id}
-                  transform={`translate(${point[0]}, ${point[1]})`}
-                  tabIndex={0}
-                  aria-label={place.label}
-                  onPointerEnter={() =>
-                    setHoveredPlace({
-                      label: place.label,
-                      x: point[0],
-                      y: point[1],
-                    })
-                  }
-                  onPointerLeave={() => setHoveredPlace(null)}
-                  onFocus={() =>
-                    setHoveredPlace({
-                      label: place.label,
-                      x: point[0],
-                      y: point[1],
-                    })
-                  }
-                  onBlur={() => setHoveredPlace(null)}
-                >
-                  <circle className="map-place-dot" r="4.5" />
-                  <title>{place.label}</title>
-                </g>
-              ) : null;
-            })}
-          </g>
-        )}
-        {hoveredPlace && (
-          <g
-            className="map-hover-tooltip"
-            transform={`translate(${hoveredPlace.x}, ${hoveredPlace.y < 35 ? hoveredPlace.y + 14 : hoveredPlace.y - 12})`}
-            pointerEvents="none"
-          >
-            <rect
-              x={-Math.max(26, (hoveredPlace.label.length * 7 + 16) / 2)}
-              y={hoveredPlace.y < 35 ? 0 : -24}
-              width={Math.max(52, hoveredPlace.label.length * 7 + 16)}
-              height="22"
-              rx="4"
-              className="tooltip-box"
-            />
-            <path
-              d={
-                hoveredPlace.y < 35
-                  ? "M -4 2 L 4 2 L 0 -3 Z"
-                  : "M -4 -2 L 4 -2 L 0 3 Z"
-              }
-              className="tooltip-arrow"
-            />
-            <text
-              y={hoveredPlace.y < 35 ? 14 : -9}
-              textAnchor="middle"
-              className="tooltip-text"
+            {mode === "globe" && (
+              <circle className="globe-ocean" cx="310" cy="250" r="242" />
+            )}
+            <g
+              className="country-shapes"
+              clipPath={mode === "globe" ? "url(#globe-clip)" : undefined}
             >
-              {hoveredPlace.label}
-            </text>
+              {countries.map((country) => (
+                <path
+                  className={
+                    isCountryVisited(country)
+                      ? "country visited"
+                      : "country"
+                  }
+                  d={pathGenerator(country) ?? undefined}
+                  key={countryKey(country)}
+                  style={{
+                    cursor: !readOnly && mode !== "globe" ? "pointer" : "default",
+                    strokeWidth:
+                      mode === "profile" && mapZoom > 1
+                        ? Math.max(0.4, 0.8 / Math.sqrt(mapZoom))
+                        : undefined,
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (hasDragged.current) return;
+                    lastHandledClick.current = Date.now();
+                    if (!readOnly && mode !== "globe") void addCountry(country);
+                  }}
+                  onKeyDown={
+                    !readOnly && mode !== "globe"
+                      ? (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            void addCountry(country);
+                          }
+                        }
+                      : undefined
+                  }
+                  role={!readOnly && mode !== "globe" ? "button" : undefined}
+                  tabIndex={!readOnly && mode !== "globe" ? 0 : undefined}
+                >
+                  <title>
+                    {country.properties?.name ??
+                      (language === "ru" ? "Страна" : "Country")}
+                    {!readOnly && mode !== "globe"
+                      ? language === "ru"
+                        ? " - нажмите, чтобы отметить или снять отметку"
+                        : " - click to mark or unmark"
+                      : ""}
+                  </title>
+                </path>
+              ))}
+            </g>
           </g>
-        )}
+          {visiblePlaces.length > 0 && (
+            <g
+              className={
+                mode === "globe" ? "globe-place-markers" : "profile-place-markers"
+              }
+            >
+              {visiblePlaces.map((place) => {
+                const point = projection([place.longitude, place.latitude]);
+                const dotR =
+                  mode === "profile" && mapZoom > 1
+                    ? Math.max(2.2, 4.5 / Math.sqrt(mapZoom))
+                    : 4.5;
+                const strokeW =
+                  mode === "profile" && mapZoom > 1
+                    ? Math.max(0.75, 1.5 / Math.sqrt(mapZoom))
+                    : 1.5;
+
+                return point ? (
+                  <g
+                    className="map-place"
+                    key={place.id}
+                    transform={`translate(${point[0]}, ${point[1]})`}
+                    tabIndex={0}
+                    aria-label={place.label}
+                    onPointerEnter={() =>
+                      setHoveredPlace({
+                        label: place.label,
+                        x: point[0],
+                        y: point[1],
+                      })
+                    }
+                    onPointerLeave={() => setHoveredPlace(null)}
+                    onFocus={() =>
+                      setHoveredPlace({
+                        label: place.label,
+                        x: point[0],
+                        y: point[1],
+                      })
+                    }
+                    onBlur={() => setHoveredPlace(null)}
+                  >
+                    <circle
+                      className="map-place-dot"
+                      r={dotR}
+                      style={{ strokeWidth: strokeW }}
+                    />
+                    <title>{place.label}</title>
+                  </g>
+                ) : null;
+              })}
+            </g>
+          )}
+          {hoveredPlace && (
+            <g
+              className="map-hover-tooltip"
+              transform={`translate(${hoveredPlace.x}, ${hoveredPlace.y < 35 ? hoveredPlace.y + 14 : hoveredPlace.y - 12})`}
+              pointerEvents="none"
+            >
+              <rect
+                x={-Math.max(26, (hoveredPlace.label.length * 7 + 16) / 2)}
+                y={hoveredPlace.y < 35 ? 0 : -24}
+                width={Math.max(52, hoveredPlace.label.length * 7 + 16)}
+                height="22"
+                rx="4"
+                className="tooltip-box"
+              />
+              <path
+                d={
+                  hoveredPlace.y < 35
+                    ? "M -4 2 L 4 2 L 0 -3 Z"
+                    : "M -4 -2 L 4 -2 L 0 3 Z"
+                }
+                className="tooltip-arrow"
+              />
+              <text
+                y={hoveredPlace.y < 35 ? 14 : -9}
+                textAnchor="middle"
+                className="tooltip-text"
+              >
+                {hoveredPlace.label}
+              </text>
+            </g>
+          )}
+        </g>
       </svg>
       {mode === "profile" && !readOnly && (
         <div className="map-zoom-controls">
           <button
             type="button"
             className="map-zoom-button"
-            onClick={() => setMapZoom((z) => Math.min(6, +(z * 1.3).toFixed(2)))}
+            onClick={() => zoomAround(transformRef.current.zoom * 1.35)}
             title={language === "ru" ? "Приблизить карту" : "Zoom in"}
             aria-label={language === "ru" ? "Приблизить карту" : "Zoom in"}
           >
@@ -1143,13 +1363,7 @@ export default function MapView({
           <button
             type="button"
             className="map-zoom-button"
-            onClick={() =>
-              setMapZoom((z) => {
-                const next = Math.max(1, +(z / 1.3).toFixed(2));
-                if (next === 1) setPanOffset({ x: 0, y: 0 });
-                return next;
-              })
-            }
+            onClick={() => zoomAround(transformRef.current.zoom / 1.35)}
             title={language === "ru" ? "Отдалить карту" : "Zoom out"}
             aria-label={language === "ru" ? "Отдалить карту" : "Zoom out"}
           >
@@ -1159,10 +1373,7 @@ export default function MapView({
             <button
               type="button"
               className="map-zoom-button map-zoom-reset"
-              onClick={() => {
-                setMapZoom(1);
-                setPanOffset({ x: 0, y: 0 });
-              }}
+              onClick={() => zoomAround(1)}
               title={language === "ru" ? "Сбросить масштаб" : "Reset zoom"}
               aria-label={language === "ru" ? "Сбросить масштаб" : "Reset zoom"}
             >
