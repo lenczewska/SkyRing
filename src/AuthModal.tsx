@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { createUserWithEmailAndPassword, deleteUser, signInWithEmailAndPassword } from 'firebase/auth'
+import { createUserWithEmailAndPassword, deleteUser, signInWithEmailAndPassword, updateProfile } from 'firebase/auth'
 import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore'
 import type { AuthMode } from './types'
 import { auth, db } from './firebase'
@@ -35,6 +35,12 @@ export default function AuthModal({
         if (!/^[a-z0-9_]{3,20}$/.test(normalizedUsername)) throw new Error('username-format')
         const credential = await createUserWithEmailAndPassword(auth, emailOrUsername, password)
         try {
+          try {
+            await updateProfile(credential.user, { displayName: normalizedUsername })
+            window.localStorage.setItem(`skyring-uname-${credential.user.uid}`, normalizedUsername)
+          } catch {
+            // non-fatal
+          }
           await runTransaction(db, async (transaction) => {
             const usernameRef = doc(db, 'usernames', normalizedUsername)
             if ((await transaction.get(usernameRef)).exists()) throw new Error('username-taken')

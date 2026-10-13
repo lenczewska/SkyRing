@@ -33,7 +33,7 @@ export const CURATED_TRAVELERS: UserProfile[] = [
         authorUsername: "sophie_nomad",
         authorAvatar: "S",
         title: "Рассвет на Амальфитанском побережье",
-        description: "Когда утренний туман рассеивается над морем, скалы окрашиваются в золотисто-розовый цвет. Мы взяли кофе в старой пекарне и смотрели, как просыпается городок.",
+        description: "Когда утренний туман рассеивается над морем, скалы окрашиваются в золотисто-розовый цвет. Мы взяли кофе в старой пекарне и смотрели, как просыпается городок. #italy #amalfi #sea #sunrise",
         location: "Амальфи, Италия",
         date: "2026-05-18",
         image: "https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=900&q=85",
@@ -48,7 +48,7 @@ export const CURATED_TRAVELERS: UserProfile[] = [
           {
             id: "c-s-2",
             authorUsername: "sophie_nomad",
-            text: "Лучше всего май или сентябрь — туристов меньше, а море тёплое!",
+            text: "Лучше всего май или сентябрь — туристов меньше, а море тёплое! #amalfi",
             createdAt: "2026-05-18T11:15:00Z",
           },
         ],
@@ -60,7 +60,7 @@ export const CURATED_TRAVELERS: UserProfile[] = [
         authorUsername: "sophie_nomad",
         authorAvatar: "S",
         title: "Бамбуковый лес Арасияма в Киото",
-        description: "Звук покачивающихся бамбуковых стеблей на ветру признан одним из «100 звуковых ландшафтов Японии». Настоящее место для медитации и размышлений.",
+        description: "Звук покачивающихся бамбуковых стеблей на ветру признан одним из «100 звуковых ландшафтов Японии». Настоящее место для медитации и размышлений. #japan #kyoto #nature",
         location: "Киото, Япония",
         date: "2026-04-12",
         image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=900&q=85",
@@ -93,12 +93,33 @@ export const CURATED_TRAVELERS: UserProfile[] = [
     ],
     posts: [
       {
+        id: "curated-post-marco-rome",
+        authorId: "curated-marco",
+        authorUsername: "marco_rossi",
+        authorAvatar: "M",
+        title: "Вечерний Рим и Колизей на закате",
+        description: "Вечерний Вечный город дышит историей. Самое лучшее время для прогулок по Трастевере и древним форумам — когда спадает дневная жара и зажигаются золотые огни. #italy #roma #rome #history #architecture",
+        location: "Рим, Италия",
+        date: "2026-06-14",
+        image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=900&q=85",
+        likes: ["sophie_nomad", "alex_explorer", "elena_voyage"],
+        comments: [
+          {
+            id: "c-m-rome-1",
+            authorUsername: "sophie_nomad",
+            text: "Рим в закатном солнце невероятен! Обожаю этот город.",
+            createdAt: "2026-06-14T20:30:00Z",
+          },
+        ],
+        createdAt: "2026-06-14T18:45:00Z",
+      },
+      {
         id: "curated-post-marco-1",
         authorId: "curated-marco",
         authorUsername: "marco_rossi",
         authorAvatar: "M",
         title: "Озеро Блед на рассвете",
-        description: "Островок с колокольней посреди зеркальной глади озера. Туман медленно сползает с Юлийских Альп, создавая сказочную атмосферу.",
+        description: "Островок с колокольней посреди зеркальной глади озера. Туман медленно сползает с Юлийских Альп, создавая сказочную атмосферу. #mountains #lake #adventure #nature",
         location: "Блед, Словения",
         date: "2026-06-02",
         image: "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=85",
@@ -136,7 +157,7 @@ export const CURATED_TRAVELERS: UserProfile[] = [
         authorUsername: "elena_voyage",
         authorAvatar: "E",
         title: "Полет над долиной Каппадокии",
-        description: "Сотни воздушных шаров взмывают над причудливыми скальными долинами на восходе солнца. Невероятный простор и ощущение свободы.",
+        description: "Сотни воздушных шаров взмывают над причудливыми скальными долинами на восходе солнца. Невероятный простор и ощущение свободы. #adventure #cappadocia #nature",
         location: "Каппадокия, Турция",
         date: "2026-05-25",
         image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=85",
@@ -237,7 +258,7 @@ export async function fetchUserProfile(
         username: data.username || normalized,
         email: data.email,
         bio: data.bio || (data.description ?? ""),
-        avatar: (data.username || "T").charAt(0).toUpperCase(),
+        avatar: data.avatar || (data.username || "T").charAt(0).toUpperCase(),
         location: data.location || (data.city && data.country ? `${data.city}, ${data.country}` : data.city || data.country || ""),
         country: data.country,
         city: data.city,
@@ -356,7 +377,7 @@ export async function searchTravelers(
           uid: uUid,
           username: uName,
           bio,
-          avatar: uName.charAt(0).toUpperCase(),
+          avatar: data.avatar || uName.charAt(0).toUpperCase(),
           location,
           postsCount,
           placesCount,
@@ -501,7 +522,7 @@ export async function getFollowingPosts(
               ...p,
               authorId: uUid,
               authorUsername: uData.username || p.authorUsername || "traveller",
-              authorAvatar: (uData.username || "T").charAt(0).toUpperCase(),
+              authorAvatar: uData.avatar || (uData.username || "T").charAt(0).toUpperCase(),
               allowComments:
                 p.allowComments !== undefined
                   ? p.allowComments
@@ -555,7 +576,7 @@ export async function getCommunityPosts(
           ...p,
           authorId: docSnap.id,
           authorUsername: uData.username || p.authorUsername || "traveller",
-          authorAvatar: (uData.username || "T").charAt(0).toUpperCase(),
+          authorAvatar: uData.avatar || (uData.username || "T").charAt(0).toUpperCase(),
           allowComments:
             p.allowComments !== undefined
               ? p.allowComments

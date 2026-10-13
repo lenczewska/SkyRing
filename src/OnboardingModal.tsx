@@ -1,7 +1,9 @@
-import { useState, type FormEvent } from "react";
+import { useState, useMemo, type FormEvent } from "react";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 import type { TravelPreferences } from "./types";
+import LocationSelect from "./LocationSelect";
+import { getSortedCountries, getCitiesForCountry } from "./lib/worldLocations";
 
 type OnboardingModalProps = {
   uid: string;
@@ -34,9 +36,9 @@ export default function OnboardingModal({
             "Настройте ваш стиль путешествий, чтобы находить единомышленников и сохранять впечатления.",
           locationSection: "Откуда вы?",
           countryLabel: "Страна",
-          countryPlaceholder: "например, Россия",
+          countryPlaceholder: "Выберите страну или начните вводить...",
           cityLabel: "Город",
-          cityPlaceholder: "например, Москва",
+          cityPlaceholder: "Выберите город или начните вводить...",
           ageLabel: "Возраст",
           agePlaceholder: "например, 25",
           styleSection: "Стиль путешествия",
@@ -56,9 +58,9 @@ export default function OnboardingModal({
             "Set up your travel style to connect with like-minded explorers and save your impressions.",
           locationSection: "Where are you based?",
           countryLabel: "Country",
-          countryPlaceholder: "e.g., France",
+          countryPlaceholder: "Select country or start typing...",
           cityLabel: "City",
-          cityPlaceholder: "e.g., Paris",
+          cityPlaceholder: "Select city or start typing...",
           ageLabel: "Age",
           agePlaceholder: "e.g., 25",
           styleSection: "Travel Style",
@@ -71,6 +73,23 @@ export default function OnboardingModal({
           validationError:
             "Please provide your country, city, age, style, format, and select at least 3 interests.",
         };
+
+  const countryOptions = useMemo(() => {
+    return getSortedCountries(language).map((c) => ({
+      value: language === "ru" ? c.ru : c.en,
+      label: language === "ru" ? c.ru : c.en,
+      icon: c.flag,
+      sublabel: language === "ru" ? c.en : c.ru,
+    }));
+  }, [language]);
+
+  const cityOptions = useMemo(() => {
+    return getCitiesForCountry(country, language).map((cityName) => ({
+      value: cityName,
+      label: cityName,
+      icon: "🏙️",
+    }));
+  }, [country, language]);
 
   const travelStyles = [
     {
@@ -239,30 +258,49 @@ export default function OnboardingModal({
           <div className="onboarding-section">
             <h3 className="onboarding-section-title">📍 {copy.locationSection}</h3>
             <div className="onboarding-grid-3">
-              <label>
-                <span>{copy.countryLabel}</span>
-                <input
-                  type="text"
-                  required
-                  placeholder={copy.countryPlaceholder}
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                />
-              </label>
+              <LocationSelect
+                label={copy.countryLabel}
+                value={country}
+                onChange={(val) => {
+                  setCountry(val);
+                  setCity("");
+                }}
+                options={countryOptions}
+                placeholder={copy.countryPlaceholder}
+                required
+                allowCustom={true}
+                emptyMessage={
+                  language === "ru"
+                    ? "Страна не найдена"
+                    : "No country found"
+                }
+              />
 
-              <label>
-                <span>{copy.cityLabel}</span>
-                <input
-                  type="text"
-                  required
-                  placeholder={copy.cityPlaceholder}
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
-              </label>
+              <LocationSelect
+                label={copy.cityLabel}
+                value={city}
+                onChange={(val) => setCity(val)}
+                options={cityOptions}
+                placeholder={copy.cityPlaceholder}
+                required
+                allowCustom={true}
+                disabled={!country.trim()}
+                hint={
+                  !country.trim()
+                    ? language === "ru"
+                      ? "Сначала выберите страну"
+                      : "Choose country first"
+                    : undefined
+                }
+                emptyMessage={
+                  language === "ru"
+                    ? "Город не найден (можно ввести свой)"
+                    : "No city found (you can type yours)"
+                }
+              />
 
-              <label>
-                <span>{copy.ageLabel}</span>
+              <label className="onboarding-age-label">
+                <span>{copy.ageLabel} <strong className="required-star">*</strong></span>
                 <input
                   type="number"
                   min="12"

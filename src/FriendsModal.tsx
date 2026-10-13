@@ -6,6 +6,7 @@ import {
   searchTravelers,
   toggleFollow,
 } from "./lib/friendsService";
+import UserAvatar from "./UserAvatar";
 
 type FriendsModalProps = {
   mode: "followers" | "following";
@@ -162,9 +163,12 @@ export default function FriendsModal({
                     onClick={onClose}
                     className="friends-modal-user-link"
                   >
-                    <div className="friends-item-avatar">
-                      {item.avatar || item.username.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      avatar={item.avatar}
+                      username={item.username}
+                      size={42}
+                      className="friends-item-avatar"
+                    />
                     <div className="friends-item-info">
                       <div className="friends-item-name-row">
                         <strong>@{item.username}</strong>

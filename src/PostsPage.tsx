@@ -13,10 +13,14 @@ import {
 } from "./lib/friendsService";
 import PostMenu from "./PostMenu";
 import MapView from "./MapView";
+import UserAvatar from "./UserAvatar";
+import HashtagText from "./HashtagText";
+import PostDetailModal from "./PostDetailModal";
 
 type PostsPageProps = {
   user: User | null;
   username?: string;
+  userAvatar?: string;
   language: "en" | "ru";
   onRequestAuth?: () => void;
 };
@@ -26,6 +30,7 @@ type FeedTab = "following" | "all" | "my" | "archive";
 export default function PostsPage({
   user,
   username = "",
+  userAvatar = "",
   language,
   onRequestAuth,
 }: PostsPageProps) {
@@ -44,6 +49,7 @@ export default function PostsPage({
   const [publishing, setPublishing] = useState(false);
   const [currentUserAllowComments, setCurrentUserAllowComments] = useState<boolean>(true);
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   const copy =
     language === "ru"
@@ -186,7 +192,7 @@ export default function PostsPage({
       id: `${Date.now()}`,
       authorId: user.uid,
       authorUsername: username || "traveller",
-      authorAvatar: (username || "T").charAt(0).toUpperCase(),
+      authorAvatar: userAvatar || (username || "T").charAt(0).toUpperCase(),
       title: draft.title.trim(),
       image: draft.image,
       description: draft.description ?? "",
@@ -300,7 +306,7 @@ export default function PostsPage({
       id: `${Date.now()}`,
       authorId: user.uid,
       authorUsername: username || "traveller",
-      authorAvatar: (username || "T").charAt(0).toUpperCase(),
+      authorAvatar: userAvatar || (username || "T").charAt(0).toUpperCase(),
       text,
       createdAt: new Date().toISOString(),
     };
@@ -610,6 +616,24 @@ export default function PostsPage({
                     : "Write your impressions, tips, and feelings from this trip..."
                 }
               />
+              <div className="composer-hashtag-suggestions">
+                <span className="hashtag-suggest-label">
+                  {language === "ru" ? "Добавить хештег:" : "Add hashtag:"}
+                </span>
+                {["#italy", "#roma", "#japan", "#mountains", "#sea", "#adventure", "#food", "#nature", "#hiking"].map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    className="composer-hashtag-chip"
+                    onClick={() => {
+                      const cur = draft.description ?? "";
+                      updateDraft("description", cur ? `${cur} ${t}` : t);
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </label>
           </div>
           <button
@@ -664,9 +688,14 @@ export default function PostsPage({
                             <div className="friend-card-head">
                               <Link
                                 to={`/profile/${t.username}`}
-                                className="friend-avatar"
+                                className="friend-avatar-link"
                               >
-                                {t.avatar || t.username.charAt(0).toUpperCase()}
+                                <UserAvatar
+                                  avatar={t.avatar}
+                                  username={t.username}
+                                  size={40}
+                                  className="friend-avatar"
+                                />
                               </Link>
                               <div className="friend-card-meta">
                                 <Link
@@ -735,7 +764,12 @@ export default function PostsPage({
                   key={post.id}
                 >
                   {post.image && (
-                    <img src={post.image} alt={post.location || post.title} />
+                    <img
+                      src={post.image}
+                      alt={post.location || post.title}
+                      className="post-card-clickable-img"
+                      onClick={() => setSelectedPost(post)}
+                    />
                   )}
                   <div className="post-card-body">
                     {/* Author row */}
@@ -744,9 +778,12 @@ export default function PostsPage({
                         to={`/profile/${authorUName}`}
                         className="post-author-link"
                       >
-                        <div className="post-author-avatar">
-                          {post.authorAvatar || authorUName.charAt(0).toUpperCase()}
-                        </div>
+                        <UserAvatar
+                          avatar={post.authorAvatar}
+                          username={authorUName}
+                          size={42}
+                          className="post-author-avatar"
+                        />
                         <div className="post-author-info">
                           <strong className="post-author-name">
                             @{authorUName}
@@ -798,8 +835,15 @@ export default function PostsPage({
                       </div>
                     </div>
 
-                    <h2>{post.title}</h2>
-                    <p className="post-description-text">{post.description}</p>
+                    <h2
+                      className="post-title-link"
+                      onClick={() => setSelectedPost(post)}
+                    >
+                      <HashtagText text={post.title} />
+                    </h2>
+                    <p className="post-description-text">
+                      <HashtagText text={post.description} />
+                    </p>
 
                     {/* Like & Comments Action Bar */}
                     <div className="post-actions-bar">
@@ -908,6 +952,27 @@ export default function PostsPage({
         )}
       </section>
       </>
+      )}
+
+      {/* Detailed Post Modal */}
+      {selectedPost && (
+        <PostDetailModal
+          post={selectedPost}
+          language={language}
+          currentUsername={username}
+          onClose={() => setSelectedPost(null)}
+          onLike={(pId) => {
+            const p = currentDisplayPosts.find((item) => item.id === pId);
+            if (p) void handleToggleLike(p);
+          }}
+          onComment={(pId, text) => {
+            const p = currentDisplayPosts.find((item) => item.id === pId);
+            if (p) {
+              setCommentInputs((prev) => ({ ...prev, [pId]: text }));
+              void handleAddComment(p);
+            }
+          }}
+        />
       )}
     </section>
   );

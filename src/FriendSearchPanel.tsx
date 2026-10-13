@@ -6,6 +6,7 @@ import {
   searchTravelers,
   toggleFollow,
 } from "./lib/friendsService";
+import UserAvatar from "./UserAvatar";
 
 type FriendSearchPanelProps = {
   currentUser: { uid: string; username: string } | null;
@@ -149,9 +150,12 @@ export default function FriendSearchPanel({
                     to={`/profile/${t.username}`}
                     className="friend-card-avatar-link"
                   >
-                    <div className="friend-avatar">
-                      {t.avatar || t.username.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      avatar={t.avatar}
+                      username={t.username}
+                      size={44}
+                      className="friend-avatar"
+                    />
                   </Link>
                   <div className="friend-card-meta">
                     <div className="friend-name-row">

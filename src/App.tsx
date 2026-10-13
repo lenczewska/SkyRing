@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import {
   BrowserRouter,
   Navigate,
@@ -16,6 +16,7 @@ import ProfilePage from "./ProfilePage";
 import TravelMapPage from "./TravelMapPage";
 import PostsPage from "./PostsPage";
 import OnboardingModal from "./OnboardingModal";
+import HashtagPage from "./HashtagPage";
 import { I18nProvider, useI18n } from "./i18n";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 import type { AuthMode } from "./types";
@@ -25,6 +26,7 @@ function AppShell() {
   const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState("");
+  const [userAvatar, setUserAvatar] = useState("");
   const [authMode, setAuthMode] = useState<AuthMode | null>(null);
   const [onboardingUser, setOnboardingUser] = useState<{
     uid: string;
@@ -33,30 +35,78 @@ function AppShell() {
   const [profileMenu, setProfileMenu] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(
-    () =>
-      onAuthStateChanged(auth, async (nextUser) => {
-        setUser(nextUser);
-        setUsername("");
-        if (nextUser) {
-          try {
-            const userSnap = await getDoc(doc(db, "users", nextUser.uid));
-            const uData = userSnap.data();
-            const uname = uData?.username ?? "";
-            setUsername(uname);
-            const hasLocal = window.localStorage.getItem(
-              `skyring-onboarding-${nextUser.uid}`,
-            );
-            if (uData && uData.onboardingCompleted === false && !hasLocal) {
-              setOnboardingUser({ uid: nextUser.uid, username: uname });
-            }
-          } catch {
-            // ignore
-          }
+  useEffect(() => {
+    let unsubscribeDoc: (() => void) | null = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (nextUser) => {
+      setUser(nextUser);
+      if (unsubscribeDoc) {
+        unsubscribeDoc();
+        unsubscribeDoc = null;
+      }
+
+      if (nextUser) {
+        // Fast instant fallback from localStorage / displayName
+        const localCached = window.localStorage.getItem(
+          `skyring-uname-${nextUser.uid}`,
+        );
+        const fallback =
+          localCached ||
+          nextUser.displayName ||
+          nextUser.email?.split("@")[0] ||
+          "";
+        if (fallback) {
+          setUsername(fallback);
         }
-      }),
-    [],
-  );
+
+        unsubscribeDoc = onSnapshot(
+          doc(db, "users", nextUser.uid),
+          (userSnap) => {
+            if (userSnap.exists()) {
+              const uData = userSnap.data();
+              const uname =
+                uData?.username ||
+                nextUser.displayName ||
+                nextUser.email?.split("@")[0] ||
+                "";
+              if (uname) {
+                setUsername(uname);
+                try {
+                  window.localStorage.setItem(
+                    `skyring-uname-${nextUser.uid}`,
+                    uname,
+                  );
+                } catch {
+                  // ignore
+                }
+              }
+              if (uData?.avatar !== undefined) {
+                setUserAvatar(uData.avatar || "");
+              }
+
+              const hasLocal = window.localStorage.getItem(
+                `skyring-onboarding-${nextUser.uid}`,
+              );
+              if (uData && uData.onboardingCompleted === false && !hasLocal) {
+                setOnboardingUser({ uid: nextUser.uid, username: uname });
+              }
+            }
+          },
+          (err) => {
+            console.warn("Could not listen to user doc in App:", err);
+          },
+        );
+      } else {
+        setUsername("");
+        setUserAvatar("");
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeDoc) unsubscribeDoc();
+    };
+  }, []);
 
   return (
     <main className="site-shell">
@@ -176,7 +226,11 @@ function AppShell() {
                 onClick={() => setProfileMenu(!profileMenu)}
                 type="button"
               >
-                @{username || "account"} <span aria-hidden="true">↗</span>
+                @{username ||
+                  user.displayName ||
+                  user.email?.split("@")[0] ||
+                  (language === "ru" ? "профиль" : "profile")}{" "}
+                <span aria-hidden="true">↗</span>
               </button>
               {profileMenu && (
                 <div className="profile-menu">
@@ -237,6 +291,8 @@ function AppShell() {
               <ProfilePage
                 user={user}
                 username={username}
+                userAvatar={userAvatar}
+                onAvatarChange={setUserAvatar}
                 language={language}
                 onUsernameChange={setUsername}
                 onRequestAuth={() => setAuthMode("login")}
@@ -252,6 +308,8 @@ function AppShell() {
             <ProfilePage
               user={user}
               username={username}
+              userAvatar={userAvatar}
+              onAvatarChange={setUserAvatar}
               language={language}
               onUsernameChange={setUsername}
               onRequestAuth={() => setAuthMode("login")}
@@ -274,6 +332,18 @@ function AppShell() {
             <PostsPage
               user={user}
               username={username}
+              userAvatar={userAvatar}
+              language={language}
+              onRequestAuth={() => setAuthMode("login")}
+            />
+          }
+        />
+        <Route
+          path="/tags/:tag"
+          element={
+            <HashtagPage
+              user={user}
+              username={username}
               language={language}
               onRequestAuth={() => setAuthMode("login")}
             />
@@ -291,6 +361,15 @@ function AppShell() {
           }
           onRegisterSuccess={(registeredUid, registeredUsername) => {
             setAuthMode(null);
+            setUsername(registeredUsername);
+            try {
+              window.localStorage.setItem(
+                `skyring-uname-${registeredUid}`,
+                registeredUsername,
+              );
+            } catch {
+              // ignore
+            }
             setOnboardingUser({
               uid: registeredUid,
               username: registeredUsername,

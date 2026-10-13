@@ -9,6 +9,8 @@ import {
   searchTravelers,
   toggleFollow,
 } from "./lib/friendsService";
+import UserAvatar from "./UserAvatar";
+import HashtagText from "./HashtagText";
 
 type Copy = {
   eyebrow: string;
@@ -203,10 +205,14 @@ export default function HomePage({
                     <div className="home-friend-author">
                       <Link
                         to={`/profile/${post.authorUsername}`}
-                        className="author-avatar-sm"
+                        className="author-avatar-sm-link"
                       >
-                        {post.authorAvatar ||
-                          (post.authorUsername || "T").charAt(0).toUpperCase()}
+                        <UserAvatar
+                          avatar={post.authorAvatar}
+                          username={post.authorUsername}
+                          size={28}
+                          className="author-avatar-sm"
+                        />
                       </Link>
                       <Link
                         to={`/profile/${post.authorUsername}`}
@@ -216,8 +222,8 @@ export default function HomePage({
                       </Link>
                       <span className="home-friend-date">{post.date}</span>
                     </div>
-                    <h3>{post.title}</h3>
-                    <p>{post.description}</p>
+                    <h3><HashtagText text={post.title} /></h3>
+                    <p><HashtagText text={post.description} /></p>
                     <Link
                       to="/posts"
                       className="read-more-link"
@@ -244,9 +250,14 @@ export default function HomePage({
                     <div className="home-suggested-card" key={t.uid}>
                       <Link
                         to={`/profile/${t.username}`}
-                        className="suggested-avatar"
+                        className="suggested-avatar-link"
                       >
-                        {t.avatar || t.username.charAt(0).toUpperCase()}
+                        <UserAvatar
+                          avatar={t.avatar}
+                          username={t.username}
+                          size={36}
+                          className="suggested-avatar"
+                        />
                       </Link>
                       <div className="suggested-info">
                         <Link

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useMemo, type FormEvent } from "react";
 import {
   deleteUser,
   EmailAuthProvider,
@@ -12,9 +12,14 @@ import {
   runTransaction,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import type { UserProfile } from "./types";
+import LocationSelect from "./LocationSelect";
+import { getSortedCountries, getCitiesForCountry } from "./lib/worldLocations";
+import UserAvatar from "./UserAvatar";
+import AvatarModal from "./AvatarModal";
 
 type SettingsModalProps = {
   user: User;
@@ -39,6 +44,11 @@ export default function SettingsModal({
   const [usernameError, setUsernameError] = useState("");
   const [usernameSuccess, setUsernameSuccess] = useState("");
 
+  // Avatar state
+  const [avatar, setAvatar] = useState(profileData?.avatar || "");
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [avatarSuccess, setAvatarSuccess] = useState("");
+
   // Toggles
   const [allowComments, setAllowComments] = useState<boolean>(
     profileData?.allowComments ?? true
@@ -54,6 +64,28 @@ export default function SettingsModal({
   );
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState("");
+
+  const [country, setCountry] = useState(profileData?.country || "");
+  const [city, setCity] = useState(profileData?.city || "");
+  const [locationSaving, setLocationSaving] = useState(false);
+  const [locationSuccess, setLocationSuccess] = useState("");
+
+  const countryOptions = useMemo(() => {
+    return getSortedCountries(language).map((c) => ({
+      value: language === "ru" ? c.ru : c.en,
+      label: language === "ru" ? c.ru : c.en,
+      icon: c.flag,
+      sublabel: language === "ru" ? c.en : c.ru,
+    }));
+  }, [language]);
+
+  const cityOptions = useMemo(() => {
+    return getCitiesForCountry(country, language).map((cityName) => ({
+      value: cityName,
+      label: cityName,
+      icon: "🏙️",
+    }));
+  }, [country, language]);
 
   // Delete Account States
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -74,6 +106,19 @@ export default function SettingsModal({
           usernameTaken: "Этот никнейм уже занят другим путешественником.",
           usernameInvalid: "Никнейм должен содержать от 3 до 20 латинских букв, цифр или _.",
           usernameSuccess: "Никнейм успешно обновлён!",
+          avatarSection: "Фото профиля",
+          avatarDesc: "Персонализируйте профиль, чтобы друзья и путешественники узнавали вас.",
+          changeAvatarBtn: "Сменить фото",
+          addAvatarBtn: "Загрузить фото",
+          removeAvatarBtn: "Удалить фото",
+          avatarRemovedMsg: "Фото профиля удалено.",
+          locationSection: "Локация (страна и город)",
+          countryLabel: "Страна",
+          cityLabel: "Город",
+          countryPlaceholder: "Выберите страну или начните вводить...",
+          cityPlaceholder: "Выберите город или начните вводить...",
+          saveLocationBtn: "Сохранить локацию",
+          locationSuccess: "Локация успешно обновлена!",
           privacySection: "Приватность и взаимодействие",
           allowCommentsTitle: "Разрешить комментарии к постам",
           allowCommentsDesc:
@@ -114,6 +159,19 @@ export default function SettingsModal({
           usernameTaken: "This username is already taken by another traveler.",
           usernameInvalid: "Username must be 3-20 letters, numbers, or underscores.",
           usernameSuccess: "Username updated successfully!",
+          avatarSection: "Profile Photo",
+          avatarDesc: "Personalize your profile so fellow travelers recognize you.",
+          changeAvatarBtn: "Change photo",
+          addAvatarBtn: "Upload photo",
+          removeAvatarBtn: "Remove photo",
+          avatarRemovedMsg: "Profile photo removed.",
+          locationSection: "Location (Country & City)",
+          countryLabel: "Country",
+          cityLabel: "City",
+          countryPlaceholder: "Select country or start typing...",
+          cityPlaceholder: "Select city or start typing...",
+          saveLocationBtn: "Save Location",
+          locationSuccess: "Location updated successfully!",
           privacySection: "Privacy & Interaction",
           allowCommentsTitle: "Allow comments on posts",
           allowCommentsDesc:
@@ -207,6 +265,37 @@ export default function SettingsModal({
       }
     } finally {
       setUsernameSaving(false);
+    }
+  };
+
+  // 1b. Save Country & City Location Handler
+  const handleSaveLocation = async () => {
+    setLocationSaving(true);
+    setLocationSuccess("");
+    const locString =
+      city && country ? `${city}, ${country}` : city || country || "";
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          country: country.trim(),
+          city: city.trim(),
+          location: locString.trim(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      onProfileUpdate({
+        country: country.trim(),
+        city: city.trim(),
+        location: locString.trim(),
+      });
+      setLocationSuccess(copy.locationSuccess);
+      setTimeout(() => setLocationSuccess(""), 3500);
+    } catch (e) {
+      console.warn("Could not save location:", e);
+    } finally {
+      setLocationSaving(false);
     }
   };
 
@@ -338,6 +427,53 @@ export default function SettingsModal({
         </div>
 
         <div className="settings-modal-content">
+          {/* Section 0: Profile Photo */}
+          <section className="settings-card">
+            <h3 className="settings-card-title">📷 {copy.avatarSection}</h3>
+            <p className="settings-card-subtitle">{copy.avatarDesc}</p>
+            <div className="settings-avatar-row">
+              <UserAvatar
+                avatar={avatar}
+                username={currentUsername}
+                size={76}
+                className="settings-avatar-preview"
+              />
+              <div className="settings-avatar-actions">
+                <button
+                  type="button"
+                  className="button button-coral button-small settings-action-btn"
+                  onClick={() => setShowAvatarPicker(true)}
+                >
+                  📷 {avatar ? copy.changeAvatarBtn : copy.addAvatarBtn}
+                </button>
+                {avatar && (
+                  <button
+                    type="button"
+                    className="button button-outline button-small settings-action-btn"
+                    onClick={async () => {
+                      setAvatar("");
+                      try {
+                        await updateDoc(doc(db, "users", user.uid), {
+                          avatar: "",
+                        });
+                        onProfileUpdate({ avatar: "" });
+                        setAvatarSuccess(copy.avatarRemovedMsg);
+                        setTimeout(() => setAvatarSuccess(""), 3000);
+                      } catch {
+                        // ignore
+                      }
+                    }}
+                  >
+                    🗑️ {copy.removeAvatarBtn}
+                  </button>
+                )}
+              </div>
+            </div>
+            {avatarSuccess && (
+              <p className="settings-msg success">{avatarSuccess}</p>
+            )}
+          </section>
+
           {/* Section 1: Change Username */}
           <section className="settings-card">
             <h3 className="settings-card-title">👤 {copy.generalTab}</h3>
@@ -373,6 +509,62 @@ export default function SettingsModal({
                 {usernameSaving ? copy.usernameSaving : copy.changeUsernameBtn} ↗
               </button>
             </form>
+          </section>
+
+          {/* Section 1b: Location (Country & City) */}
+          <section className="settings-card">
+            <h3 className="settings-card-title">📍 {copy.locationSection}</h3>
+            <div className="settings-location-grid">
+              <LocationSelect
+                label={copy.countryLabel}
+                value={country}
+                onChange={(val) => {
+                  setCountry(val);
+                  setCity("");
+                }}
+                options={countryOptions}
+                placeholder={copy.countryPlaceholder}
+                allowCustom={true}
+                emptyMessage={
+                  language === "ru" ? "Страна не найдена" : "No country found"
+                }
+              />
+
+              <LocationSelect
+                label={copy.cityLabel}
+                value={city}
+                onChange={(val) => setCity(val)}
+                options={cityOptions}
+                placeholder={copy.cityPlaceholder}
+                allowCustom={true}
+                disabled={!country.trim()}
+                hint={
+                  !country.trim()
+                    ? language === "ru"
+                      ? "Сначала выберите страну"
+                      : "Choose country first"
+                    : undefined
+                }
+                emptyMessage={
+                  language === "ru"
+                    ? "Город не найден (можно ввести свой)"
+                    : "No city found (you can type yours)"
+                }
+              />
+            </div>
+
+            {locationSuccess && (
+              <p className="settings-msg success">{locationSuccess}</p>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSaveLocation}
+              disabled={locationSaving}
+              className="button button-coral button-small settings-action-btn"
+            >
+              {locationSaving ? "..." : copy.saveLocationBtn} ✓
+            </button>
           </section>
 
           {/* Section 2: Privacy & Interaction Toggles */}
@@ -513,6 +705,20 @@ export default function SettingsModal({
           </section>
         </div>
       </div>
+
+      {showAvatarPicker && (
+        <AvatarModal
+          uid={user.uid}
+          username={currentUsername}
+          currentAvatar={avatar}
+          language={language}
+          onClose={() => setShowAvatarPicker(false)}
+          onSave={(newAvatar) => {
+            setAvatar(newAvatar);
+            onProfileUpdate({ avatar: newAvatar });
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -14,6 +14,11 @@ import FriendsModal from "./FriendsModal";
 import FriendSearchPanel from "./FriendSearchPanel";
 import PostMenu from "./PostMenu";
 import SettingsModal from "./SettingsModal";
+import UserAvatar from "./UserAvatar";
+import AvatarModal from "./AvatarModal";
+import VisitedPlacesModal from "./VisitedPlacesModal";
+import PostDetailModal from "./PostDetailModal";
+import HashtagText from "./HashtagText";
 
 type ProfilePageProps = {
   user: User | null;
@@ -21,6 +26,8 @@ type ProfilePageProps = {
   language: "en" | "ru";
   onRequestAuth?: () => void;
   onUsernameChange?: (newUsername: string) => void;
+  userAvatar?: string;
+  onAvatarChange?: (newAvatar: string) => void;
 };
 
 export default function ProfilePage({
@@ -29,6 +36,8 @@ export default function ProfilePage({
   language,
   onRequestAuth,
   onUsernameChange,
+  userAvatar = "",
+  onAvatarChange,
 }: ProfilePageProps) {
   const { username: routeUsername } = useParams<{ username?: string }>();
   const navigate = useNavigate();
@@ -40,8 +49,10 @@ export default function ProfilePage({
 
   const isOwnProfile =
     !routeUsername ||
-    (currentUsername &&
-      targetUsername.toLowerCase() === currentUsername.toLowerCase());
+    Boolean(
+      currentUsername &&
+        targetUsername.toLowerCase() === currentUsername.toLowerCase()
+    );
 
   const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -61,6 +72,9 @@ export default function ProfilePage({
     null,
   );
   const [showSettings, setShowSettings] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [showPlacesModal, setShowPlacesModal] = useState(false);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   const copy =
     language === "ru"
@@ -317,7 +331,6 @@ export default function ProfilePage({
   };
 
   const displayName = profileData?.username || targetUsername || "traveller";
-  const avatarLetter = (displayName || "T").charAt(0).toUpperCase();
 
   return (
     <section className="profile-page container">
@@ -344,7 +357,26 @@ export default function ProfilePage({
 
       {/* Profile Header */}
       <div className="profile-header">
-        <div className="profile-avatar">{avatarLetter}</div>
+        <div className="profile-avatar-wrapper">
+          <UserAvatar
+            avatar={profileData?.avatar || (isOwnProfile ? userAvatar : undefined)}
+            username={displayName}
+            size={126}
+            className={`profile-avatar ${isOwnProfile ? "avatar-editable" : ""}`}
+            onClick={isOwnProfile ? () => setShowAvatarModal(true) : undefined}
+          />
+          {isOwnProfile && (
+            <button
+              type="button"
+              className="profile-avatar-edit-badge"
+              onClick={() => setShowAvatarModal(true)}
+              title={language === "ru" ? "Сменить фото профиля" : "Change profile photo"}
+              aria-label={language === "ru" ? "Сменить фото профиля" : "Change profile photo"}
+            >
+              📷
+            </button>
+          )}
+        </div>
 
         <div className="profile-heading">
           <div className="profile-eyebrow-row">
@@ -362,14 +394,16 @@ export default function ProfilePage({
             <h1>@{displayName}</h1>
 
             {isOwnProfile && (
-              <button
-                className="button button-outline profile-settings-btn"
-                onClick={() => setShowSettings(true)}
-                type="button"
-                title={language === "ru" ? "Настройки профиля" : "Profile settings"}
-              >
-                ⚙️ {language === "ru" ? "Настройки" : "Settings"}
-              </button>
+              <div className="profile-actions-group">
+                <button
+                  className="button button-outline profile-settings-btn"
+                  onClick={() => setShowSettings(true)}
+                  type="button"
+                  title={language === "ru" ? "Настройки профиля" : "Profile settings"}
+                >
+                  ⚙️ {language === "ru" ? "Настройки" : "Settings"}
+                </button>
+              </div>
             )}
 
             {!isOwnProfile && (
@@ -436,9 +470,18 @@ export default function ProfilePage({
             <span className="stat-pill">
               <strong>{posts.length}</strong> {copy.posts.toLowerCase()}
             </span>
-            <span className="stat-pill">
+            <button
+              className="stat-pill stat-interactive"
+              onClick={() => setShowPlacesModal(true)}
+              type="button"
+              title={
+                language === "ru"
+                  ? "Посмотреть посещённые места"
+                  : "View visited places"
+              }
+            >
               <strong>{places.length}</strong> {copy.places.toLowerCase()}
-            </span>
+            </button>
 
             <button
               className="stat-pill stat-interactive"
@@ -591,7 +634,12 @@ export default function ProfilePage({
               .map((post) => (
                 <article className="profile-post-card" key={post.id}>
                   {post.image && (
-                    <img src={post.image} alt={post.location || post.title} />
+                    <img
+                      src={post.image}
+                      alt={post.location || post.title}
+                      className="profile-post-card-img"
+                      onClick={() => setSelectedPost(post)}
+                    />
                   )}
                   <div className="profile-post-content">
                     <div className="post-card-meta">
@@ -613,20 +661,27 @@ export default function ProfilePage({
                       )}
                     </div>
 
-                  <h2>{post.title}</h2>
-                  <p>{post.description}</p>
+                    <h2
+                      className="profile-post-card-title"
+                      onClick={() => setSelectedPost(post)}
+                    >
+                      <HashtagText text={post.title} />
+                    </h2>
+                    <p className="profile-post-card-desc">
+                      <HashtagText text={post.description} />
+                    </p>
 
-                  <div className="profile-post-footer">
-                    <small>
-                      💬 {post.comments.length} {copy.comments.toLowerCase()}
-                    </small>
-                    {post.likes && post.likes.length > 0 && (
-                      <small>❤️ {post.likes.length}</small>
-                    )}
+                    <div className="profile-post-footer">
+                      <small onClick={() => setSelectedPost(post)} style={{ cursor: "pointer" }}>
+                        💬 {post.comments.length} {copy.comments.toLowerCase()}
+                      </small>
+                      {post.likes && post.likes.length > 0 && (
+                        <small>❤️ {post.likes.length}</small>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              ))}
           </div>
         )}
       </section>
@@ -684,6 +739,9 @@ export default function ProfilePage({
           onClose={() => setShowSettings(false)}
           onProfileUpdate={(updated) => {
             setProfileData((prev) => (prev ? { ...prev, ...updated } : prev));
+            if (updated.avatar !== undefined) {
+              onAvatarChange?.(updated.avatar);
+            }
             if (updated.username) {
               onUsernameChange?.(updated.username);
               navigate(`/profile/@${updated.username}`, { replace: true });
@@ -693,6 +751,84 @@ export default function ProfilePage({
             setShowSettings(false);
             navigate("/", { replace: true });
             window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Avatar Modal */}
+      {showAvatarModal && user && (
+        <AvatarModal
+          uid={user.uid}
+          username={displayName}
+          currentAvatar={profileData?.avatar || userAvatar || ""}
+          language={language}
+          onClose={() => setShowAvatarModal(false)}
+          onSave={(newAvatar) => {
+            setProfileData((prev) =>
+              prev ? { ...prev, avatar: newAvatar } : prev,
+            );
+            onAvatarChange?.(newAvatar);
+          }}
+        />
+      )}
+
+      {/* Visited Places Modal */}
+      {showPlacesModal && (
+        <VisitedPlacesModal
+          username={displayName}
+          places={places}
+          language={language}
+          isOwnProfile={isOwnProfile}
+          onClose={() => setShowPlacesModal(false)}
+        />
+      )}
+
+      {/* Post Detail Modal */}
+      {selectedPost && (
+        <PostDetailModal
+          post={selectedPost}
+          language={language}
+          currentUsername={currentUsername}
+          onClose={() => setSelectedPost(null)}
+          onLike={(pId) => {
+            if (!user) {
+              onRequestAuth?.();
+              return;
+            }
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (p.id !== pId) return p;
+                const likes = p.likes || [];
+                const isLiked = likes.includes(currentUsername);
+                const nextLikes = isLiked
+                  ? likes.filter((u) => u !== currentUsername)
+                  : [...likes, currentUsername];
+                const updated = { ...p, likes: nextLikes };
+                if (selectedPost.id === pId) setSelectedPost(updated);
+                return updated;
+              })
+            );
+          }}
+          onComment={(pId, text) => {
+            if (!user) {
+              onRequestAuth?.();
+              return;
+            }
+            const commentObj = {
+              id: `${Date.now()}`,
+              authorUsername: currentUsername || "traveller",
+              text,
+              createdAt: new Date().toISOString(),
+            };
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (p.id !== pId) return p;
+                const nextComments = [...p.comments, commentObj];
+                const updated = { ...p, comments: nextComments };
+                if (selectedPost.id === pId) setSelectedPost(updated);
+                return updated;
+              })
+            );
           }}
         />
       )}
