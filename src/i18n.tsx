@@ -41,16 +41,57 @@ type CommonCopy = {
   logout: string;
   languageLabel: string;
 };
+
+export type SocialCopy = {
+  friends: string;
+  following: string;
+  followers: string;
+  follow: string;
+  unfollow: string;
+  followingBtn: string;
+  mutual: string;
+  findFriends: string;
+  searchTravelers: string;
+  searchPlaceholder: string;
+  noUsersFound: string;
+  suggestedTravelers: string;
+  followingFeed: string;
+  allPosts: string;
+  myPosts: string;
+  noFollowingPosts: string;
+  noFollowingPostsSub: string;
+  exploreTravelers: string;
+  userNotFound: string;
+  backToMyProfile: string;
+  viewProfile: string;
+  postsCount: string;
+  placesCount: string;
+  followersCount: string;
+  followingCount: string;
+  journeys2026: string;
+  addComment: string;
+  commentPlaceholder: string;
+  like: string;
+  liked: string;
+  myDiary: string;
+  userDiary: string;
+  sharedPosts: string;
+  noPostsYet: string;
+  friendUpdates: string;
+  friendUpdatesSub: string;
+};
+
 type I18nValue = {
   language: Language;
   setLanguage: (language: Language) => void;
   common: CommonCopy;
   home: HomeCopy;
+  social: SocialCopy;
 };
 
 export const translations: Record<
   Language,
-  { common: CommonCopy; home: HomeCopy }
+  { common: CommonCopy; home: HomeCopy; social: SocialCopy }
 > = {
   en: {
     common: {
@@ -59,6 +100,44 @@ export const translations: Record<
       posts: "Posts",
       logout: "Log out",
       languageLabel: "Choose language",
+    },
+    social: {
+      friends: "Friends & Following",
+      following: "Following",
+      followers: "Followers",
+      follow: "+ Follow",
+      unfollow: "Unfollow",
+      followingBtn: "✓ Following",
+      mutual: "Mutual",
+      findFriends: "Find Travelers",
+      searchTravelers: "Search by username or place...",
+      searchPlaceholder: "e.g. sophie_nomad, marco, alex...",
+      noUsersFound: "No travelers found.",
+      suggestedTravelers: "Recommended Travelers",
+      followingFeed: "Following Feed",
+      allPosts: "Explore Feed",
+      myPosts: "My Posts",
+      noFollowingPosts: "No posts in your following feed yet.",
+      noFollowingPostsSub: "Follow travelers to see their latest adventures, maps, and photos here!",
+      exploreTravelers: "Find Travelers to Follow",
+      userNotFound: "User not found",
+      backToMyProfile: "Back to my profile",
+      viewProfile: "View profile",
+      postsCount: "posts",
+      placesCount: "places",
+      followersCount: "followers",
+      followingCount: "following",
+      journeys2026: "journeys in 2026",
+      addComment: "Leave a comment",
+      commentPlaceholder: "Write a comment...",
+      like: "Like",
+      liked: "Liked",
+      myDiary: "MY TRAVEL DIARY",
+      userDiary: "TRAVEL DIARY",
+      sharedPosts: "STORIES & POSTS",
+      noPostsYet: "No published posts yet.",
+      friendUpdates: "FRIENDS UPDATES",
+      friendUpdatesSub: "Stories from travelers you follow around the world.",
     },
     home: {
       navHow: "How it works",
@@ -111,6 +190,44 @@ export const translations: Record<
       posts: "Посты",
       logout: "Выйти",
       languageLabel: "Выбор языка",
+    },
+    social: {
+      friends: "Друзья и подписки",
+      following: "Подписки",
+      followers: "Подписчики",
+      follow: "+ Подписаться",
+      unfollow: "Отписаться",
+      followingBtn: "✓ В подписках",
+      mutual: "Взаимно",
+      findFriends: "Поиск путешественников",
+      searchTravelers: "Поиск по логину или городам...",
+      searchPlaceholder: "например: sophie_nomad, marco, alex...",
+      noUsersFound: "Путешественники не найдены.",
+      suggestedTravelers: "Рекомендации путешественников",
+      followingFeed: "Лента подписок",
+      allPosts: "Все посты",
+      myPosts: "Мои посты",
+      noFollowingPosts: "В вашей ленте подписок пока нет публикаций.",
+      noFollowingPostsSub: "Подпишитесь на других путешественников, чтобы видеть их новые истории и маршруты!",
+      exploreTravelers: "Найти путешественников",
+      userNotFound: "Пользователь не найден",
+      backToMyProfile: "Вернуться в мой профиль",
+      viewProfile: "Открыть профиль",
+      postsCount: "постов",
+      placesCount: "мест",
+      followersCount: "подписчиков",
+      followingCount: "подписок",
+      journeys2026: "путешествий в 2026",
+      addComment: "Оставить комментарий",
+      commentPlaceholder: "Напишите комментарий...",
+      like: "Нравится",
+      liked: "Понравилось",
+      myDiary: "МОЙ ДНЕВНИК",
+      userDiary: "ДНЕВНИК ПУТЕШЕСТВИЙ",
+      sharedPosts: "ПУБЛИКАЦИИ И ИСТОРИИ",
+      noPostsYet: "Пока нет опубликованных постов.",
+      friendUpdates: "ОБНОВЛЕНИЯ ДРУЗЕЙ",
+      friendUpdatesSub: "Свежие истории и маршруты людей, на которых вы подписаны.",
     },
     home: {
       navHow: "Как это работает",
@@ -174,6 +291,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLanguage,
       common: translations[language].common,
       home: translations[language].home,
+      social: translations[language].social,
     }),
     [language],
   );
@@ -185,3 +303,4 @@ export function useI18n() {
   if (!value) throw new Error("useI18n must be used inside I18nProvider");
   return value;
 }
+

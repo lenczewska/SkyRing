@@ -15,14 +15,21 @@ import HomePage from "./HomePage";
 import ProfilePage from "./ProfilePage";
 import TravelMapPage from "./TravelMapPage";
 import PostsPage from "./PostsPage";
+import OnboardingModal from "./OnboardingModal";
 import { I18nProvider, useI18n } from "./i18n";
+import { ThemeProvider, useTheme } from "./ThemeProvider";
 import type { AuthMode } from "./types";
 
 function AppShell() {
   const { language, setLanguage, common, home } = useI18n();
+  const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [username, setUsername] = useState("");
   const [authMode, setAuthMode] = useState<AuthMode | null>(null);
+  const [onboardingUser, setOnboardingUser] = useState<{
+    uid: string;
+    username: string;
+  } | null>(null);
   const [profileMenu, setProfileMenu] = useState(false);
   const navigate = useNavigate();
 
@@ -31,11 +38,22 @@ function AppShell() {
       onAuthStateChanged(auth, async (nextUser) => {
         setUser(nextUser);
         setUsername("");
-        if (nextUser)
-          setUsername(
-            (await getDoc(doc(db, "users", nextUser.uid))).data()?.username ??
-              "",
-          );
+        if (nextUser) {
+          try {
+            const userSnap = await getDoc(doc(db, "users", nextUser.uid));
+            const uData = userSnap.data();
+            const uname = uData?.username ?? "";
+            setUsername(uname);
+            const hasLocal = window.localStorage.getItem(
+              `skyring-onboarding-${nextUser.uid}`,
+            );
+            if (uData && uData.onboardingCompleted === false && !hasLocal) {
+              setOnboardingUser({ uid: nextUser.uid, username: uname });
+            }
+          } catch {
+            // ignore
+          }
+        }
       }),
     [],
   );
@@ -58,21 +76,81 @@ function AppShell() {
         </button>
         <div className="nav-links">
           <button
-            className="nav-button nav-link-button"
+            className="nav-globe-btn"
             onClick={() => navigate("/map")}
             type="button"
+            title={common.map}
+            aria-label={common.map}
           >
-            {common.map}
+            <svg
+              className="nav-globe-svg"
+              viewBox="0 0 36 36"
+              width="32"
+              height="32"
+              aria-hidden="true"
+            >
+              <circle className="nav-globe-border-bg" cx="18" cy="18" r="15" />
+              <circle className="nav-globe-border-fill" cx="18" cy="18" r="15" />
+              <g className="nav-globe-icon">
+                <circle cx="18" cy="18" r="8" className="nav-globe-sphere" />
+                <line x1="10" y1="18" x2="26" y2="18" className="nav-globe-line" />
+                <line x1="18" y1="10" x2="18" y2="26" className="nav-globe-line" />
+                <ellipse cx="18" cy="18" rx="4.2" ry="8" className="nav-globe-line" />
+                <path d="M10.8 14.5 C13 16, 23 16, 25.2 14.5" className="nav-globe-line" />
+                <path d="M10.8 21.5 C13 20, 23 20, 25.2 21.5" className="nav-globe-line" />
+              </g>
+            </svg>
           </button>
           <button
-            className="nav-button nav-link-button"
-            onClick={() => navigate("/posts")}
+            className="nav-plus-btn"
+            onClick={() => {
+              if (!user) {
+                setAuthMode("register");
+              } else {
+                navigate("/posts");
+              }
+            }}
             type="button"
+            title={language === "ru" ? "Создать пост / Лента" : "Create post / Feed"}
+            aria-label={language === "ru" ? "Создать пост / Лента" : "Create post / Feed"}
           >
-            {common.posts}
+            <svg
+              className="nav-plus-svg"
+              viewBox="0 0 36 36"
+              width="32"
+              height="32"
+              aria-hidden="true"
+            >
+              <circle className="nav-plus-border-bg" cx="18" cy="18" r="15" />
+              <circle className="nav-plus-border-fill" cx="18" cy="18" r="15" />
+              <path className="nav-plus-cross" d="M18 11 V25 M11 18 H25" />
+            </svg>
           </button>
         </div>
         <div className="nav-actions">
+          {/* Theme Switcher Toggle */}
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleTheme}
+            type="button"
+            aria-label={theme === "dark" ? "Переключить на светлую тему" : "Переключить на тёмную тему"}
+            title={theme === "dark" ? (language === "ru" ? "Светлая тема" : "Light mode") : (language === "ru" ? "Тёмная тема" : "Dark mode")}
+          >
+            <span className="theme-toggle-icon">
+              {theme === "dark" ? (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                </svg>
+              ) : (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                </svg>
+              )}
+            </span>
+          </button>
+
+          {/* Language Switcher */}
           <div className="language-switcher" aria-label={common.languageLabel}>
             <button
               className={language === "en" ? "language-active" : ""}
@@ -90,6 +168,7 @@ function AppShell() {
               RU
             </button>
           </div>
+
           {user ? (
             <div className="profile-nav">
               <button
@@ -159,10 +238,24 @@ function AppShell() {
                 user={user}
                 username={username}
                 language={language}
+                onUsernameChange={setUsername}
+                onRequestAuth={() => setAuthMode("login")}
               />
             ) : (
               <Navigate to="/" replace />
             )
+          }
+        />
+        <Route
+          path="/profile/:username"
+          element={
+            <ProfilePage
+              user={user}
+              username={username}
+              language={language}
+              onUsernameChange={setUsername}
+              onRequestAuth={() => setAuthMode("login")}
+            />
           }
         />
         <Route
@@ -180,6 +273,7 @@ function AppShell() {
           element={
             <PostsPage
               user={user}
+              username={username}
               language={language}
               onRequestAuth={() => setAuthMode("login")}
             />
@@ -195,6 +289,24 @@ function AppShell() {
           onSwitch={() =>
             setAuthMode(authMode === "login" ? "register" : "login")
           }
+          onRegisterSuccess={(registeredUid, registeredUsername) => {
+            setAuthMode(null);
+            setOnboardingUser({
+              uid: registeredUid,
+              username: registeredUsername,
+            });
+          }}
+        />
+      )}
+      {onboardingUser && (
+        <OnboardingModal
+          uid={onboardingUser.uid}
+          username={onboardingUser.username}
+          language={language}
+          onComplete={() => {
+            setOnboardingUser(null);
+            navigate("/profile");
+          }}
         />
       )}
     </main>
@@ -203,10 +315,13 @@ function AppShell() {
 
 export default function App() {
   return (
-    <I18nProvider>
-      <BrowserRouter>
-        <AppShell />
-      </BrowserRouter>
-    </I18nProvider>
+    <ThemeProvider>
+      <I18nProvider>
+        <BrowserRouter>
+          <AppShell />
+        </BrowserRouter>
+      </I18nProvider>
+    </ThemeProvider>
   );
 }
+

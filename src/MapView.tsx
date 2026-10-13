@@ -904,7 +904,7 @@ export default function MapView({
   };
 
   const applyTransform = (nextZoom: number, nextX: number, nextY: number) => {
-    const clampedZoom = Math.min(8, Math.max(1, Number(nextZoom.toFixed(3))));
+    const clampedZoom = Math.min(36, Math.max(1, Number(nextZoom.toFixed(3))));
     let clampedX = nextX;
     let clampedY = nextY;
 
@@ -917,8 +917,8 @@ export default function MapView({
       const minY = 500 * (1 - clampedZoom);
       const maxY = 0;
 
-      clampedX = Math.max(minX - 50, Math.min(maxX + 50, clampedX));
-      clampedY = Math.max(minY - 40, Math.min(maxY + 40, clampedY));
+      clampedX = Math.max(minX - 160, Math.min(maxX + 160, clampedX));
+      clampedY = Math.max(minY - 120, Math.min(maxY + 120, clampedY));
     }
 
     transformRef.current = { zoom: clampedZoom, x: clampedX, y: clampedY };
@@ -928,7 +928,7 @@ export default function MapView({
 
   const zoomAround = (targetZoom: number, focusSvgX = 480, focusSvgY = 250) => {
     const current = transformRef.current;
-    const clampedZoom = Math.min(8, Math.max(1, Number(targetZoom.toFixed(3))));
+    const clampedZoom = Math.min(36, Math.max(1, Number(targetZoom.toFixed(3))));
 
     if (clampedZoom === 1) {
       applyTransform(1, 0, 0);
@@ -1064,7 +1064,7 @@ export default function MapView({
       if (initialPinchDistance.current && initialPinchDistance.current > 0 && initialPinchCenter.current) {
         const ratio = dist / initialPinchDistance.current;
         const current = transformRef.current;
-        const targetZoom = Math.min(8, Math.max(1, current.zoom * ratio));
+        const targetZoom = Math.min(36, Math.max(1, current.zoom * ratio));
 
         const dMidX = currMidSvg.x - initialPinchCenter.current.x;
         const dMidY = currMidSvg.y - initialPinchCenter.current.y;
@@ -1225,12 +1225,9 @@ export default function MapView({
                   }
                   d={pathGenerator(country) ?? undefined}
                   key={countryKey(country)}
+                  vectorEffect={mode === "profile" ? "non-scaling-stroke" : undefined}
                   style={{
                     cursor: !readOnly && mode !== "globe" ? "pointer" : "default",
-                    strokeWidth:
-                      mode === "profile" && mapZoom > 1
-                        ? Math.max(0.4, 0.8 / Math.sqrt(mapZoom))
-                        : undefined,
                   }}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -1273,13 +1270,9 @@ export default function MapView({
               {visiblePlaces.map((place) => {
                 const point = projection([place.longitude, place.latitude]);
                 const dotR =
-                  mode === "profile" && mapZoom > 1
-                    ? Math.max(2.2, 4.5 / Math.sqrt(mapZoom))
-                    : 4.5;
-                const strokeW =
-                  mode === "profile" && mapZoom > 1
-                    ? Math.max(0.75, 1.5 / Math.sqrt(mapZoom))
-                    : 1.5;
+                  mode === "profile"
+                    ? Math.max(0.08, 3.2 / Math.pow(mapZoom, 0.9))
+                    : 3.2;
 
                 return point ? (
                   <g
@@ -1308,7 +1301,7 @@ export default function MapView({
                     <circle
                       className="map-place-dot"
                       r={dotR}
-                      style={{ strokeWidth: strokeW }}
+                      vectorEffect={mode === "profile" ? "non-scaling-stroke" : undefined}
                     />
                     <title>{place.label}</title>
                   </g>
@@ -1319,7 +1312,11 @@ export default function MapView({
           {hoveredPlace && (
             <g
               className="map-hover-tooltip"
-              transform={`translate(${hoveredPlace.x}, ${hoveredPlace.y < 35 ? hoveredPlace.y + 14 : hoveredPlace.y - 12})`}
+              transform={
+                mode === "profile"
+                  ? `translate(${hoveredPlace.x}, ${hoveredPlace.y}) scale(${1 / mapZoom}) translate(0, ${hoveredPlace.y < 35 ? 14 : -12})`
+                  : `translate(${hoveredPlace.x}, ${hoveredPlace.y < 35 ? hoveredPlace.y + 14 : hoveredPlace.y - 12})`
+              }
               pointerEvents="none"
             >
               <rect

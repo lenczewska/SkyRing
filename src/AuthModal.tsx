@@ -4,9 +4,21 @@ import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore
 import type { AuthMode } from './types'
 import { auth, db } from './firebase'
 
-type AuthModalProps = { mode: AuthMode; language?: 'en' | 'ru'; onClose: () => void; onSwitch: () => void }
+type AuthModalProps = {
+  mode: AuthMode
+  language?: 'en' | 'ru'
+  onClose: () => void
+  onSwitch: () => void
+  onRegisterSuccess?: (uid: string, username: string) => void
+}
 
-export default function AuthModal({ mode, language = 'en', onClose, onSwitch }: AuthModalProps) {
+export default function AuthModal({
+  mode,
+  language = 'en',
+  onClose,
+  onSwitch,
+  onRegisterSuccess,
+}: AuthModalProps) {
   const [username, setUsername] = useState('')
   const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -32,6 +44,10 @@ export default function AuthModal({ mode, language = 'en', onClose, onSwitch }: 
         } catch (transactionError) {
           await deleteUser(credential.user)
           throw transactionError
+        }
+        if (onRegisterSuccess) {
+          onRegisterSuccess(credential.user.uid, normalizedUsername)
+          return
         }
       } else {
         let email = emailOrUsername.trim()

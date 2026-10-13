@@ -1,140 +1,175 @@
 import { useEffect, useState } from "react";
 import type { User } from "firebase/auth";
+import { Link } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
+import type { Post, PostComment, UserSummary } from "./types";
+import {
+  getCommunityPosts,
+  getFollowingPosts,
+  getLocalFollowing,
+  searchTravelers,
+  toggleFollow,
+} from "./lib/friendsService";
+import PostMenu from "./PostMenu";
+import MapView from "./MapView";
 
 type PostsPageProps = {
   user: User | null;
+  username?: string;
   language: "en" | "ru";
   onRequestAuth?: () => void;
 };
-export type Post = {
-  id: string;
-  image?: string;
-  title: string;
-  description: string;
-  location: string;
-  date: string;
-  comments: string[];
-};
 
-type Copy = {
-  eyebrow: string;
-  title: string;
-  intro: string;
-  add: string;
-  image: string;
-  description: string;
-  location: string;
-  date: string;
-  comment: string;
-  commentPlaceholder: string;
-  publish: string;
-  posts: string;
-  empty: string;
-  remove: string;
-};
+type FeedTab = "following" | "all" | "my" | "archive";
 
 export default function PostsPage({
   user,
+  username = "",
   language,
   onRequestAuth,
 }: PostsPageProps) {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [activeTab, setActiveTab] = useState<FeedTab>(
+    user ? "following" : "all",
+  );
+  const [myPosts, setMyPosts] = useState<Post[]>([]);
+  const [followingPosts, setFollowingPosts] = useState<Post[]>([]);
+  const [allPosts, setAllPosts] = useState<Post[]>([]);
+  const [suggested, setSuggested] = useState<UserSummary[]>([]);
+  const [loadingFeed, setLoadingFeed] = useState(false);
+
   const [draft, setDraft] = useState<Partial<Post>>({});
-  const [newComment, setNewComment] = useState("");
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [publishError, setPublishError] = useState("");
   const [publishing, setPublishing] = useState(false);
-  const copy: Copy =
+  const [currentUserAllowComments, setCurrentUserAllowComments] = useState<boolean>(true);
+  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
+
+  const copy =
     language === "ru"
       ? {
-          eyebrow: "ПОСТЫ",
+          eyebrow: "ЛЕНТА ПУТЕШЕСТВИЙ",
           title: "Истории, которые хочется сохранить.",
-          intro: "Добавляйте фотографии, впечатления и детали каждой поездки.",
-          add: "ДОБАВИТЬ ПОСТ",
+          intro:
+            "Следите за поездками друзей, открывайте новые направления и делитесь своими впечатлениями.",
+          tabFollowing: "Подписки",
+          tabAll: "Все посты",
+          tabMy: "Мои посты",
+          tabArchive: "Архив",
+          archivedBadge: "В архиве",
+          archivedBanner: "Архивные публикации скрыты от других пользователей и видны только вам.",
+          add: "ДОБАВИТЬ НОВЫЙ ПОСТ",
           image: "Фотография",
           description: "Описание",
           location: "Местоположение",
           date: "Дата поездки",
-          comment: "Комментарий",
-          commentPlaceholder: "Добавьте комментарий",
+          titleLabel: "Название",
+          comment: "Комментарии",
+          commentPlaceholder: "Оставьте комментарий...",
           publish: "Опубликовать пост",
-          posts: "ВАШИ ПОСТЫ",
-          empty: "Пока нет постов.",
+          emptyMy: "У вас пока нет опубликованных постов.",
+          emptyArchive: "В архиве пока нет сохраненных постов.",
+          emptyFollowing: "В вашей ленте подписок пока нет постов.",
+          emptyFollowingSub:
+            "Подпишитесь на интересных путешественников, чтобы видеть их новые истории здесь!",
+          emptyAll: "Пока нет опубликованных постов.",
           remove: "Удалить",
+          like: "Нравится",
+          liked: "Понравилось",
+          follow: "+ Подписаться",
+          followingBtn: "✓ В подписках",
+          findFriends: "Найти друзей",
+          suggestedTitle: "Рекомендуем подписаться:",
         }
       : {
-          eyebrow: "POSTS",
+          eyebrow: "TRAVEL FEED",
           title: "Stories worth keeping.",
-          intro: "Add photos, impressions, and the details of every journey.",
-          add: "ADD A POST",
+          intro:
+            "Follow journeys of friends, discover new destinations, and share your own travel memories.",
+          tabFollowing: "Following",
+          tabAll: "Explore All",
+          tabMy: "My Posts",
+          tabArchive: "Archive",
+          archivedBadge: "Archived",
+          archivedBanner: "Archived posts are hidden from other users and visible only to you.",
+          add: "ADD A NEW POST",
           image: "Photo",
           description: "Description",
           location: "Location",
           date: "Trip date",
-          comment: "Comment",
-          commentPlaceholder: "Add a comment",
+          titleLabel: "Title",
+          comment: "Comments",
+          commentPlaceholder: "Write a comment...",
           publish: "Publish post",
-          posts: "YOUR POSTS",
-          empty: "No posts yet.",
+          emptyMy: "You haven't published any posts yet.",
+          emptyArchive: "No archived posts yet.",
+          emptyFollowing: "No posts in your following feed yet.",
+          emptyFollowingSub:
+            "Follow other travelers to see their latest adventures, maps, and photos here!",
+          emptyAll: "No posts available yet.",
           remove: "Remove",
+          like: "Like",
+          liked: "Liked",
+          follow: "+ Follow",
+          followingBtn: "✓ Following",
+          findFriends: "Find travelers",
+          suggestedTitle: "Recommended travelers to follow:",
         };
 
-  useEffect(() => {
-    if (!user) {
-      setPosts([
-        {
-          id: "preview-amalfi",
-          image:
-            "https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=900&q=85",
-          title:
-            language === "ru" ? "Амальфитанское побережье" : "Amalfi Coast",
-          description:
-            language === "ru"
-              ? "Так будут выглядеть ваши впечатления о поездке."
-              : "This is where your impressions of a trip will live.",
-          location: language === "ru" ? "Италия" : "Italy",
-          date: "2026-05-12",
-          comments: [],
-        },
-        {
-          id: "preview-kyoto",
-          image:
-            "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=900&q=85",
-          title: "Kyoto",
-          description:
-            language === "ru"
-              ? "Фотографии, описания и воспоминания в одном месте."
-              : "Photos, descriptions, and memories in one place.",
-          location: language === "ru" ? "Япония" : "Japan",
-          date: "2026-04-03",
-          comments: [],
-        },
-        {
-          id: "preview-bled",
-          image:
-            "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=85",
-          title: "Lake Bled",
-          description:
-            language === "ru"
-              ? "Именно так будут выглядеть ваши посты о путешествиях."
-              : "This is how your travel posts will look.",
-          location: language === "ru" ? "Словения" : "Slovenia",
-          date: "2026-03-18",
-          comments: [],
-        },
-      ]);
-      return;
+  // Sync following map
+  const syncFollowing = () => {
+    const list = getLocalFollowing(user?.uid);
+    const fMap: Record<string, boolean> = {};
+    list.forEach((id) => {
+      fMap[id.toLowerCase()] = true;
+    });
+    setFollowingMap(fMap);
+  };
+
+  // Load posts based on user / feeds
+  const loadFeeds = async () => {
+    setLoadingFeed(true);
+    syncFollowing();
+
+    // 1. My posts
+    if (user) {
+      try {
+        const snapshot = await getDoc(doc(db, "users", user.uid));
+        const uData = snapshot.data();
+        const userPosts = (uData?.posts as Post[] | undefined) ?? [];
+        setMyPosts(userPosts);
+        setCurrentUserAllowComments(uData?.allowComments ?? true);
+      } catch {
+        setMyPosts([]);
+      }
     }
-    getDoc(doc(db, "users", user.uid))
-      .then((snapshot) =>
-        setPosts((snapshot.data()?.posts as Post[] | undefined) ?? []),
-      )
-      .catch(() => setPosts([]));
-  }, [user, language]);
+
+    // 2. Following posts
+    const fPosts = await getFollowingPosts(
+      user ? { uid: user.uid, username: username || "traveller" } : null,
+    );
+    setFollowingPosts(fPosts);
+
+    // 3. All community posts
+    const community = await getCommunityPosts(
+      user ? { uid: user.uid, username: username || "traveller" } : null,
+    );
+    setAllPosts(community);
+
+    // 4. Suggested travelers for empty states
+    const sugg = await searchTravelers("", user?.uid, username);
+    setSuggested(sugg.slice(0, 4));
+
+    setLoadingFeed(false);
+  };
+
+  useEffect(() => {
+    void loadFeeds();
+  }, [user, username, language]);
 
   const updateDraft = <K extends keyof Post>(key: K, value: Post[K]) =>
     setDraft({ ...draft, [key]: value });
+
   const publish = async () => {
     if (!user || !draft.title?.trim()) {
       setPublishError(
@@ -146,24 +181,35 @@ export default function PostsPage({
     }
     setPublishing(true);
     setPublishError("");
+
     const post: Post = {
       id: `${Date.now()}`,
+      authorId: user.uid,
+      authorUsername: username || "traveller",
+      authorAvatar: (username || "T").charAt(0).toUpperCase(),
       title: draft.title.trim(),
       image: draft.image,
       description: draft.description ?? "",
       location: draft.location ?? "",
-      date: draft.date ?? "",
+      date: draft.date ?? new Date().toISOString().split("T")[0],
       comments: [],
+      likes: [],
+      createdAt: new Date().toISOString(),
+      isArchived: false,
+      allowComments: currentUserAllowComments,
     };
-    const nextPosts = [post, ...posts];
+
+    const nextPosts = [post, ...myPosts];
     try {
       await setDoc(
         doc(db, "users", user.uid),
         { posts: nextPosts },
         { merge: true },
       );
-      setPosts(nextPosts);
+      setMyPosts(nextPosts);
+      setAllPosts([post, ...allPosts]);
       setDraft({});
+      setActiveTab("my");
     } catch {
       setPublishError(
         language === "ru"
@@ -174,22 +220,213 @@ export default function PostsPage({
       setPublishing(false);
     }
   };
-  const addComment = async (post: Post) => {
-    if (!newComment.trim()) return;
-    const nextPosts = posts.map((item) =>
-      item.id === post.id
-        ? { ...item, comments: [...item.comments, newComment.trim()] }
-        : item,
-    );
-    setPosts(nextPosts);
-    setNewComment("");
-    if (user)
+
+  const removeMyPost = async (postId: string) => {
+    if (!user) return;
+    const nextPosts = myPosts.filter((p) => p.id !== postId);
+    setMyPosts(nextPosts);
+    setAllPosts(allPosts.filter((p) => p.id !== postId));
+    setFollowingPosts(followingPosts.filter((p) => p.id !== postId));
+    try {
       await setDoc(
         doc(db, "users", user.uid),
         { posts: nextPosts },
         { merge: true },
       );
+    } catch (err) {
+      console.warn("Could not remove post from Firestore:", err);
+    }
   };
+
+  const handleEditMyPost = async (updatedPost: Post) => {
+    if (!user) return;
+    const nextPosts = myPosts.map((p) =>
+      p.id === updatedPost.id ? updatedPost : p,
+    );
+    setMyPosts(nextPosts);
+    setAllPosts(allPosts.map((p) => (p.id === updatedPost.id ? updatedPost : p)));
+    setFollowingPosts(
+      followingPosts.map((p) => (p.id === updatedPost.id ? updatedPost : p)),
+    );
+
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        { posts: nextPosts },
+        { merge: true },
+      );
+    } catch (err) {
+      console.warn("Could not save edited post to Firestore:", err);
+    }
+  };
+
+  const handleToggleArchive = async (post: Post) => {
+    if (!user) return;
+    const nextArchivedState = !post.isArchived;
+    const updatedPost: Post = { ...post, isArchived: nextArchivedState };
+
+    const nextPosts = myPosts.map((p) =>
+      p.id === post.id ? updatedPost : p,
+    );
+    setMyPosts(nextPosts);
+    setAllPosts(allPosts.map((p) => (p.id === post.id ? updatedPost : p)));
+    setFollowingPosts(
+      followingPosts.map((p) => (p.id === post.id ? updatedPost : p)),
+    );
+
+    try {
+      await setDoc(
+        doc(db, "users", user.uid),
+        { posts: nextPosts },
+        { merge: true },
+      );
+    } catch (err) {
+      console.warn("Could not toggle archive in Firestore:", err);
+    }
+  };
+
+  const handleAddComment = async (post: Post) => {
+    const text = commentInputs[post.id]?.trim();
+    if (!text) return;
+
+    if (post.allowComments === false) return;
+
+    if (!user) {
+      onRequestAuth?.();
+      return;
+    }
+
+    const commentObj: PostComment = {
+      id: `${Date.now()}`,
+      authorId: user.uid,
+      authorUsername: username || "traveller",
+      authorAvatar: (username || "T").charAt(0).toUpperCase(),
+      text,
+      createdAt: new Date().toISOString(),
+    };
+
+    const updater = (list: Post[]) =>
+      list.map((item) =>
+        item.id === post.id
+          ? { ...item, comments: [...item.comments, commentObj] }
+          : item,
+      );
+
+    setMyPosts(updater);
+    setFollowingPosts(updater);
+    setAllPosts(updater);
+
+    setCommentInputs((prev) => ({ ...prev, [post.id]: "" }));
+
+    // If it's my post or Firestore author post, persist it
+    if (post.authorId === user.uid || !post.authorId) {
+      const updatedUserPosts = myPosts.map((p) =>
+        p.id === post.id
+          ? { ...p, comments: [...p.comments, commentObj] }
+          : p,
+      );
+      await setDoc(
+        doc(db, "users", user.uid),
+        { posts: updatedUserPosts },
+        { merge: true },
+      );
+    } else if (post.authorId && !post.authorId.startsWith("curated-")) {
+      try {
+        const authorSnap = await getDoc(doc(db, "users", post.authorId));
+        if (authorSnap.exists()) {
+          const authorPosts = (authorSnap.data()?.posts as Post[]) ?? [];
+          const updated = authorPosts.map((p) =>
+            p.id === post.id
+              ? { ...p, comments: [...p.comments, commentObj] }
+              : p,
+          );
+          await setDoc(
+            doc(db, "users", post.authorId),
+            { posts: updated },
+            { merge: true },
+          );
+        }
+      } catch (err) {
+        console.warn("Could not save comment to author's post:", err);
+      }
+    }
+  };
+
+  const handleToggleLike = async (post: Post) => {
+    if (!user) {
+      onRequestAuth?.();
+      return;
+    }
+
+    const userKey = username || user.uid;
+    const isLiked = (post.likes ?? []).includes(userKey);
+    const updatedLikes = isLiked
+      ? (post.likes ?? []).filter((id) => id !== userKey)
+      : [...(post.likes ?? []), userKey];
+
+    const updater = (list: Post[]) =>
+      list.map((item) =>
+        item.id === post.id ? { ...item, likes: updatedLikes } : item,
+      );
+
+    setMyPosts(updater);
+    setFollowingPosts(updater);
+    setAllPosts(updater);
+
+    if (post.authorId === user.uid) {
+      const updatedUserPosts = myPosts.map((p) =>
+        p.id === post.id ? { ...p, likes: updatedLikes } : p,
+      );
+      await setDoc(
+        doc(db, "users", user.uid),
+        { posts: updatedUserPosts },
+        { merge: true },
+      );
+    }
+  };
+
+  const handleFollowTraveler = async (t: UserSummary) => {
+    if (!user) {
+      onRequestAuth?.();
+      return;
+    }
+
+    const isNow = !followingMap[t.username.toLowerCase()];
+    setFollowingMap((prev) => ({
+      ...prev,
+      [t.username.toLowerCase()]: isNow,
+      [t.uid.toLowerCase()]: isNow,
+    }));
+
+    await toggleFollow(
+      { uid: user.uid, username: username || "traveller" },
+      { uid: t.uid, username: t.username },
+    );
+
+    // Refresh following feed
+    const fPosts = await getFollowingPosts({
+      uid: user.uid,
+      username: username || "traveller",
+    });
+    setFollowingPosts(fPosts);
+  };
+
+  // Filtered post lists
+  const visibleFollowingPosts = followingPosts.filter((p) => !p.isArchived);
+  const visibleAllPosts = allPosts.filter((p) => !p.isArchived);
+
+  const publishedMyPosts = myPosts.filter((p) => !p.isArchived);
+  const archivedMyPosts = myPosts.filter((p) => p.isArchived);
+
+  const currentDisplayPosts =
+    activeTab === "following"
+      ? visibleFollowingPosts
+      : activeTab === "all"
+        ? visibleAllPosts
+        : activeTab === "archive"
+          ? archivedMyPosts
+          : publishedMyPosts;
+
   return (
     <section className="subpage container posts-page">
       <p className="eyebrow">
@@ -197,36 +434,114 @@ export default function PostsPage({
       </p>
       <h1>{copy.title}</h1>
       <p className="subpage-intro">{copy.intro}</p>
-      {!user && (
-        <section className="guest-post-intro">
-          <p className="guest-map-kicker">
-            {language === "ru"
-              ? "ВАШЕ БУДУЩЕЕ ПРОСТРАНСТВО"
-              : "YOUR FUTURE SPACE"}
-          </p>
-          <h2>
-            {language === "ru"
-              ? "Здесь будут ваши посты о путешествиях."
-              : "This is where your travel posts will live."}
-          </h2>
-          <p>
-            {language === "ru"
-              ? "Добавляйте фотографии, описания, места, даты и комментарии к своим историям."
-              : "Add photos, descriptions, locations, dates, and comments to your stories."}
-          </p>
+
+      {!user ? (
+        <div className="guest-posts-wrapper">
+          <section className="guest-post-intro">
+            <p className="guest-map-kicker">
+              {language === "ru"
+                ? "СООБЩЕСТВО ПУТЕШЕСТВЕННИКОВ"
+                : "TRAVEL COMMUNITY"}
+            </p>
+            <h2>
+              {language === "ru"
+                ? "Поделись своими впечатлениями о путешествии со всем миром!"
+                : "Share your travel impressions with the whole world!"}
+            </h2>
+            <p>
+              {language === "ru"
+                ? "Лента историй, фотоотчёты и поиск единомышленников доступны только зарегистрированным пользователям. Присоединяйся к сообществу SkyRing, находи новых друзей и делись своими маршрутами!"
+                : "Stories feed, photo reports, and traveler search are available after registration. Join the SkyRing community, connect with new friends, and share your adventures!"}
+            </p>
+            <div className="guest-map-cta-row">
+              <button
+                className="button button-coral"
+                onClick={onRequestAuth}
+                type="button"
+              >
+                {language === "ru" ? "Создать аккаунт" : "Create an account"} ↗
+              </button>
+              <button
+                className="button button-outline"
+                onClick={onRequestAuth}
+                type="button"
+              >
+                {language === "ru" ? "Войти" : "Log in"}
+              </button>
+            </div>
+          </section>
+
+          <div className="guest-globe-showcase">
+            <MapView
+              mode="globe"
+              readOnly={true}
+              user={null}
+              language={language}
+              onRequestAuth={onRequestAuth}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Feed Tabs Bar */}
+          <div className="feed-tabs-bar">
+        {user && (
           <button
-            className="button button-coral"
-            onClick={onRequestAuth}
+            className={`feed-tab-btn ${activeTab === "following" ? "active" : ""}`}
+            onClick={() => setActiveTab("following")}
             type="button"
           >
-            {language === "ru"
-              ? "Создать свой первый пост"
-              : "Create your first post"}{" "}
-            ↗
+            🌟 {copy.tabFollowing}
+            {visibleFollowingPosts.length > 0 && (
+              <span className="tab-badge">{visibleFollowingPosts.length}</span>
+            )}
           </button>
-        </section>
+        )}
+
+        <button
+          className={`feed-tab-btn ${activeTab === "all" ? "active" : ""}`}
+          onClick={() => setActiveTab("all")}
+          type="button"
+        >
+          🌍 {copy.tabAll}
+        </button>
+
+        {user && (
+          <button
+            className={`feed-tab-btn ${activeTab === "my" ? "active" : ""}`}
+            onClick={() => setActiveTab("my")}
+            type="button"
+          >
+            ✍️ {copy.tabMy}
+            {publishedMyPosts.length > 0 && (
+              <span className="tab-badge">{publishedMyPosts.length}</span>
+            )}
+          </button>
+        )}
+
+        {user && (
+          <button
+            className={`feed-tab-btn ${activeTab === "archive" ? "active" : ""}`}
+            onClick={() => setActiveTab("archive")}
+            type="button"
+          >
+            📦 {copy.tabArchive}
+            {archivedMyPosts.length > 0 && (
+              <span className="tab-badge">{archivedMyPosts.length}</span>
+            )}
+          </button>
+        )}
+      </div>
+
+      {/* Archive Info Banner */}
+      {user && activeTab === "archive" && (
+        <div className="archived-info-banner">
+          <span>📦 {copy.archivedBanner}</span>
+        </div>
       )}
-      {user && (
+
+      {/* Composer Section (Shown when in "My Posts" tab) */}
+      {user && activeTab === "my" && (
         <section className="post-composer">
           <p className="section-label">{copy.add}</p>
           <div className="post-form-grid">
@@ -249,16 +564,14 @@ export default function PostsPage({
               />
             )}
             <label>
-              {copy.description}
-              <textarea
-                value={draft.description ?? ""}
-                onChange={(event) =>
-                  updateDraft("description", event.target.value)
-                }
+              {copy.titleLabel}
+              <input
+                value={draft.title ?? ""}
+                onChange={(event) => updateDraft("title", event.target.value)}
                 placeholder={
                   language === "ru"
-                    ? "Напишите ваше впечатление об этой поездке."
-                    : "Write your impression of this trip."
+                    ? "Например: Закат на скалах Санторини"
+                    : "e.g. Sunset on Santorini cliffs"
                 }
               />
             </label>
@@ -268,6 +581,11 @@ export default function PostsPage({
                 value={draft.location ?? ""}
                 onChange={(event) =>
                   updateDraft("location", event.target.value)
+                }
+                placeholder={
+                  language === "ru"
+                    ? "Например: Греция, Санторини"
+                    : "e.g. Greece, Santorini"
                 }
               />
             </label>
@@ -279,11 +597,18 @@ export default function PostsPage({
                 onChange={(event) => updateDraft("date", event.target.value)}
               />
             </label>
-            <label>
-              {language === "ru" ? "Название" : "Title"}
-              <input
-                value={draft.title ?? ""}
-                onChange={(event) => updateDraft("title", event.target.value)}
+            <label className="span-full">
+              {copy.description}
+              <textarea
+                value={draft.description ?? ""}
+                onChange={(event) =>
+                  updateDraft("description", event.target.value)
+                }
+                placeholder={
+                  language === "ru"
+                    ? "Напишите ваши впечатления, советы и эмоции от этой поездки..."
+                    : "Write your impressions, tips, and feelings from this trip..."
+                }
               />
             </label>
           </div>
@@ -297,57 +622,293 @@ export default function PostsPage({
               ? language === "ru"
                 ? "Сохраняем..."
                 : "Saving..."
-              : copy.publish}
+              : copy.publish}{" "}
+            ↗
           </button>
-          {publishError && <p className="auth-error" role="alert">{publishError}</p>}
+          {publishError && (
+            <p className="auth-error" role="alert">
+              {publishError}
+            </p>
+          )}
         </section>
       )}
+
+      {/* Main Feed Content */}
       <section className="posts-feed">
-        <p className="section-label">
-          {user
-            ? copy.posts
-            : language === "ru"
-              ? "ПРИМЕРЫ ПОСТОВ"
-              : "POST EXAMPLES"}
-        </p>
-        {posts.map((post) => (
-          <article className="post-card" key={post.id}>
-            {post.image && (
-              <img src={post.image} alt={post.location || post.title} />
-            )}
-            <div className="post-card-body">
-              <div className="post-card-meta">
-                <span>{post.location}</span>
-                <span>{post.date}</span>
-              </div>
-              <h2>{post.title}</h2>
-              <p>{post.description}</p>
-              {user && (
-                <div className="post-comments">
-                  <strong>{copy.comment}</strong>
-                  {post.comments.map((comment, index) => (
-                    <p key={`${post.id}-${index}`}>{comment}</p>
-                  ))}
-                  <div className="comment-row">
-                    <input
-                      value={newComment}
-                      onChange={(event) => setNewComment(event.target.value)}
-                      placeholder={copy.commentPlaceholder}
-                    />
-                    <button
-                      className="nav-button"
-                      onClick={() => void addComment(post)}
-                      type="button"
-                    >
-                      ↗
-                    </button>
+        {loadingFeed ? (
+          <div className="feed-loading-state">
+            <p className="empty-state">
+              {language === "ru"
+                ? "Загрузка публикаций..."
+                : "Loading travel stories..."}
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Empty state for Following Feed */}
+            {activeTab === "following" && currentDisplayPosts.length === 0 && (
+              <div className="following-empty-panel">
+                <div className="following-empty-icon">👥</div>
+                <h2>{copy.emptyFollowing}</h2>
+                <p>{copy.emptyFollowingSub}</p>
+
+                {suggested.length > 0 && (
+                  <div className="following-suggested-section">
+                    <p className="section-label">{copy.suggestedTitle}</p>
+                    <div className="friend-card-grid">
+                      {suggested.map((t) => {
+                        const isFollowing =
+                          followingMap[t.username.toLowerCase()] ?? t.isFollowing;
+                        return (
+                          <div className="friend-card" key={t.uid}>
+                            <div className="friend-card-head">
+                              <Link
+                                to={`/profile/${t.username}`}
+                                className="friend-avatar"
+                              >
+                                {t.avatar || t.username.charAt(0).toUpperCase()}
+                              </Link>
+                              <div className="friend-card-meta">
+                                <Link
+                                  to={`/profile/${t.username}`}
+                                  className="friend-username-link"
+                                >
+                                  <strong>@{t.username}</strong>
+                                </Link>
+                                {t.location && (
+                                  <span className="friend-location">
+                                    📍 {t.location}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            {t.bio && <p className="friend-bio">{t.bio}</p>}
+                            <div className="friend-card-footer">
+                              <Link
+                                to={`/profile/${t.username}`}
+                                className="button button-outline friend-view-btn"
+                              >
+                                {language === "ru" ? "Профиль" : "Profile"} ↗
+                              </Link>
+                              <button
+                                className={`follow-toggle-button ${isFollowing ? "following" : "follow"}`}
+                                onClick={() => void handleFollowTraveler(t)}
+                                type="button"
+                              >
+                                {isFollowing ? copy.followingBtn : copy.follow}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </article>
-        ))}
+                )}
+              </div>
+            )}
+
+            {/* Empty state for My Posts */}
+            {activeTab === "my" && currentDisplayPosts.length === 0 && (
+              <p className="empty-state">{copy.emptyMy}</p>
+            )}
+
+            {/* Empty state for All Posts */}
+            {activeTab === "all" && currentDisplayPosts.length === 0 && (
+              <p className="empty-state">{copy.emptyAll}</p>
+            )}
+
+            {/* Posts List */}
+            {currentDisplayPosts.map((post) => {
+              const authorUName = post.authorUsername || "traveller";
+              const isOwn =
+                user &&
+                (post.authorId === user.uid ||
+                  authorUName.toLowerCase() === (username || "").toLowerCase());
+              const isFollowed = followingMap[authorUName.toLowerCase()] ?? false;
+              const isLiked =
+                user && (post.likes ?? []).includes(username || user.uid);
+              const commentsCount = post.comments.length;
+
+              return (
+                <article
+                  className={`post-card ${post.isArchived ? "post-archived" : ""}`}
+                  key={post.id}
+                >
+                  {post.image && (
+                    <img src={post.image} alt={post.location || post.title} />
+                  )}
+                  <div className="post-card-body">
+                    {/* Author row */}
+                    <div className="post-author-header">
+                      <Link
+                        to={`/profile/${authorUName}`}
+                        className="post-author-link"
+                      >
+                        <div className="post-author-avatar">
+                          {post.authorAvatar || authorUName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="post-author-info">
+                          <strong className="post-author-name">
+                            @{authorUName}
+                          </strong>
+                          {post.location && (
+                            <span className="post-author-loc">📍 {post.location}</span>
+                          )}
+                        </div>
+                      </Link>
+
+                      <div className="post-header-actions">
+                        {post.isArchived && (
+                          <span className="archived-tag">
+                            📦 {copy.archivedBadge}
+                          </span>
+                        )}
+
+                        {!isOwn && user && (
+                          <button
+                            className={`mini-follow-btn ${isFollowed ? "following" : ""}`}
+                            onClick={() =>
+                              void handleFollowTraveler({
+                                uid: post.authorId || `curated-${authorUName}`,
+                                username: authorUName,
+                                postsCount: 0,
+                                placesCount: 0,
+                                followersCount: 0,
+                                followingCount: 0,
+                              })
+                            }
+                            type="button"
+                          >
+                            {isFollowed ? copy.followingBtn : copy.follow}
+                          </button>
+                        )}
+                        <span className="post-date-badge">{post.date}</span>
+
+                        {/* 3-dots Menu visible ONLY to the person who shared the post */}
+                        {isOwn && (
+                          <PostMenu
+                            post={post}
+                            isOwn={Boolean(isOwn)}
+                            language={language}
+                            onEdit={handleEditMyPost}
+                            onToggleArchive={handleToggleArchive}
+                            onDelete={removeMyPost}
+                          />
+                        )}
+                      </div>
+                    </div>
+
+                    <h2>{post.title}</h2>
+                    <p className="post-description-text">{post.description}</p>
+
+                    {/* Like & Comments Action Bar */}
+                    <div className="post-actions-bar">
+                      <button
+                        className={`post-like-btn ${isLiked ? "liked" : ""}`}
+                        onClick={() => void handleToggleLike(post)}
+                        type="button"
+                        title={isLiked ? copy.liked : copy.like}
+                      >
+                        <span className="like-icon">{isLiked ? "❤️" : "🤍"}</span>
+                        <span>{post.likes?.length ?? 0}</span>
+                      </button>
+
+                      <span className="post-comments-count">
+                        💬 {commentsCount} {copy.comment.toLowerCase()}
+                      </span>
+                    </div>
+
+                    {/* Comments Section */}
+                    {(() => {
+                      const isCommentsAllowed = post.allowComments !== false;
+                      return (
+                        <div className="post-comments">
+                          <strong>{copy.comment}</strong>
+                          {post.comments.length === 0 ? (
+                            <p className="no-comments-hint">
+                              {!isCommentsAllowed
+                                ? language === "ru"
+                                  ? "Комментарии к этой записи отключены автором."
+                                  : "Comments are disabled by the author."
+                                : language === "ru"
+                                  ? "Пока нет комментариев. Будьте первым!"
+                                  : "No comments yet. Be the first to comment!"}
+                            </p>
+                          ) : (
+                            <div className="comments-list">
+                              {post.comments.map((c, index) => {
+                                const isObj = typeof c !== "string";
+                                const cAuthor = isObj
+                                  ? c.authorUsername
+                                  : authorUName;
+                                const cText = isObj ? c.text : c;
+
+                                return (
+                                  <div
+                                    className="comment-item"
+                                    key={`${post.id}-${index}`}
+                                  >
+                                    <Link
+                                      to={`/profile/${cAuthor}`}
+                                      className="comment-author"
+                                    >
+                                      @{cAuthor}:
+                                    </Link>{" "}
+                                    <span className="comment-text">{cText}</span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {isCommentsAllowed ? (
+                            <div className="comment-row">
+                              <input
+                                value={commentInputs[post.id] ?? ""}
+                                onChange={(event) =>
+                                  setCommentInputs({
+                                    ...commentInputs,
+                                    [post.id]: event.target.value,
+                                  })
+                                }
+                                placeholder={copy.commentPlaceholder}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    void handleAddComment(post);
+                                  }
+                                }}
+                              />
+                              <button
+                                className="nav-button comment-submit-btn"
+                                onClick={() => void handleAddComment(post)}
+                                type="button"
+                                aria-label="Send comment"
+                              >
+                                ↗
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="comments-disabled-notice">
+                              <span>
+                                🔒 {language === "ru"
+                                  ? "Автор отключил комментарии к этому посту"
+                                  : "The author has disabled comments for this post"}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </article>
+              );
+            })}
+          </>
+        )}
       </section>
+      </>
+      )}
     </section>
   );
 }

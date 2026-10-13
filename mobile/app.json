@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "SkyRing",
+    "slug": "skyring-travel",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#f7f4ed"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#f7f4ed"
+      }
+    }
+  }
+}

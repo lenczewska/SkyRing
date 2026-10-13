@@ -91,39 +91,54 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
       <h1>{copy.title}</h1>
       <p className="subpage-intro">{copy.intro}</p>
 
-      {!user && (
-        <section className="guest-map-intro">
-          <p className="guest-map-kicker">
-            {language === 'ru' ? 'ВАША БУДУЩАЯ ИСТОРИЯ' : 'YOUR FUTURE STORY'}
-          </p>
-          <h2>
-            {language === 'ru'
-              ? 'Здесь будут отмечены ваши истории путешествий.'
-              : 'This is where your travel stories will live.'}
-          </h2>
-          <p>
-            {language === 'ru'
-              ? 'Отмечайте города, где вы были, пишите воспоминания и делитесь впечатлениями о каждой поездке и стране.'
-              : 'Mark the cities you have visited, write memories, and keep your impressions of every trip and country.'}
-          </p>
-          <button className="button button-coral" onClick={onRequestAuth} type="button">
-            {language === 'ru' ? 'Начать свою историю' : 'Start your story'} ↗
-          </button>
-        </section>
-      )}
+      {!user ? (
+        <div className="guest-map-wrapper">
+          <section className="guest-map-intro">
+            <p className="guest-map-kicker">
+              {language === 'ru' ? 'ТВОЙ ПЕРСОНАЛЬНЫЙ 3D-ГЛОБУС' : 'YOUR PERSONAL 3D GLOBE'}
+            </p>
+            <h2>
+              {language === 'ru'
+                ? 'Поделись своими впечатлениями о путешествии со всем миром и найди друзей!'
+                : 'Share your travel memories with the world and connect with friends!'}
+            </h2>
+            <p>
+              {language === 'ru'
+                ? 'Создай свой личный дневник приключений: отмечай города и страны, сохраняй воспоминания, подписывайся на других путешественников и вдохновляйся уникальными маршрутами со всей планеты.'
+                : 'Create your personal adventure diary: mark visited places, save impressions, follow fellow travelers, and discover unforgettable journeys across the globe.'}
+            </p>
+            <div className="guest-map-cta-row">
+              <button className="button button-coral" onClick={onRequestAuth} type="button">
+                {language === 'ru' ? 'Создать аккаунт' : 'Create an account'} ↗
+              </button>
+              <button className="button button-outline" onClick={onRequestAuth} type="button">
+                {language === 'ru' ? 'Войти' : 'Log in'}
+              </button>
+            </div>
+          </section>
 
-      <MapView
-        mode="profile"
-        readOnly={false}
-        user={user}
-        language={language}
-        places={places}
-        onPlacesChange={handlePlacesChange}
-        onRequestAuth={onRequestAuth}
-      />
-
-      {user && (
+          <div className="guest-globe-showcase">
+            <MapView
+              mode="globe"
+              readOnly={true}
+              user={null}
+              language={language}
+              onRequestAuth={onRequestAuth}
+            />
+          </div>
+        </div>
+      ) : (
         <>
+          <MapView
+            mode="profile"
+            readOnly={false}
+            user={user}
+            language={language}
+            places={places}
+            onPlacesChange={handlePlacesChange}
+            onRequestAuth={onRequestAuth}
+          />
+
           <section className="marked-places">
             <p className="section-label">{copy.list}</p>
             {places.length === 0 ? (
