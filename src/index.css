@@ -1860,8 +1860,10 @@ h2 em,
 .orbit-note {
   color: var(--paper);
 }
-.intro-text {
-  color: rgba(247, 244, 237, 0.72);
+.intro-text,
+.intro-band .intro-text {
+  color: var(--paper);
+  opacity: 0.85;
 }
 .profile-nav {
   position: relative;
