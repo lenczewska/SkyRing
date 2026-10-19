@@ -4,6 +4,7 @@ import { db } from "./firebase";
 import type { TravelPreferences } from "./types";
 import LocationSelect from "./LocationSelect";
 import { getSortedCountries, getCitiesForCountry } from "./lib/worldLocations";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type OnboardingModalProps = {
   uid: string;
@@ -18,6 +19,8 @@ export default function OnboardingModal({
   language = "ru",
   onComplete,
 }: OnboardingModalProps) {
+  useModalScrollLock();
+
   const [country, setCountry] = useState("");
   const [city, setCity] = useState("");
   const [age, setAge] = useState("");

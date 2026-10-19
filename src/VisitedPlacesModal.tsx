@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { VisitedPlace } from "./types";
 import { findCountry } from "./lib/worldLocations";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type VisitedPlacesModalProps = {
   username: string;
@@ -18,6 +19,7 @@ export default function VisitedPlacesModal({
   isOwnProfile = false,
   onClose,
 }: VisitedPlacesModalProps) {
+  useModalScrollLock();
   const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate();
 

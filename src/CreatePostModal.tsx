@@ -7,6 +7,7 @@ import LocationSelect, { type SelectOption } from "./LocationSelect";
 import { WORLD_COUNTRIES } from "./lib/worldLocations";
 import UserAvatar from "./UserAvatar";
 import HashtagText from "./HashtagText";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type CreatePostModalProps = {
   user: User | null;
@@ -72,6 +73,8 @@ export default function CreatePostModal({
   onClose,
   onPostCreated,
 }: CreatePostModalProps) {
+  useModalScrollLock();
+
   const [title, setTitle] = useState(POST_PRESETS[0].title);
   const [description, setDescription] = useState(POST_PRESETS[0].description);
   const [location, setLocation] = useState(POST_PRESETS[0].location);

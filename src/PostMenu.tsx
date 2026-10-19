@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Post } from "./types";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type PostMenuProps = {
   post: Post;
@@ -21,6 +22,8 @@ export default function PostMenu({
   const [menuOpen, setMenuOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  useModalScrollLock(editModalOpen);
 
   // Edit draft state
   const [editTitle, setEditTitle] = useState(post.title);

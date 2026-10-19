@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import type { User } from "firebase/auth";
 import { STORY_TRAVEL_PRESETS } from "./lib/storiesService";
 import UserAvatar from "./UserAvatar";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type CreateStoryModalProps = {
   user: User | null;
@@ -23,6 +24,8 @@ export default function CreateStoryModal({
   onClose,
   onStoryCreated,
 }: CreateStoryModalProps) {
+  useModalScrollLock();
+
   const [selectedImage, setSelectedImage] = useState<string>(
     STORY_TRAVEL_PRESETS[0].url,
   );

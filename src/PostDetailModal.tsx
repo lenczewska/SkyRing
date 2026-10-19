@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { Post, PostComment } from "./types";
 import UserAvatar from "./UserAvatar";
 import HashtagText, { extractHashtags } from "./HashtagText";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type PostDetailModalProps = {
   post: Post;
@@ -65,6 +66,8 @@ export default function PostDetailModal({
   onLike,
   onComment,
 }: PostDetailModalProps) {
+  useModalScrollLock();
+
   const [newComment, setNewComment] = useState("");
   const [copied, setCopied] = useState(false);
 

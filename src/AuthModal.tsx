@@ -3,6 +3,7 @@ import { createUserWithEmailAndPassword, deleteUser, signInWithEmailAndPassword,
 import { doc, getDoc, runTransaction, serverTimestamp } from 'firebase/firestore'
 import type { AuthMode } from './types'
 import { auth, db } from './firebase'
+import { useModalScrollLock } from './lib/useModalScrollLock'
 
 type AuthModalProps = {
   mode: AuthMode
@@ -19,6 +20,7 @@ export default function AuthModal({
   onSwitch,
   onRegisterSuccess,
 }: AuthModalProps) {
+  useModalScrollLock()
   const [username, setUsername] = useState('')
   const [emailOrUsername, setEmailOrUsername] = useState('')
   const [password, setPassword] = useState('')

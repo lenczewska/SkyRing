@@ -20,6 +20,7 @@ import LocationSelect from "./LocationSelect";
 import { getSortedCountries, getCitiesForCountry } from "./lib/worldLocations";
 import UserAvatar from "./UserAvatar";
 import AvatarModal from "./AvatarModal";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type SettingsModalProps = {
   user: User;
@@ -38,6 +39,8 @@ export default function SettingsModal({
   onProfileUpdate,
   onAccountDeleted,
 }: SettingsModalProps) {
+  useModalScrollLock();
+
   const currentUsername = profileData?.username || "";
   const [newUsername, setNewUsername] = useState(currentUsername);
   const [usernameSaving, setUsernameSaving] = useState(false);

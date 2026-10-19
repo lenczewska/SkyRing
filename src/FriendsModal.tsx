@@ -7,6 +7,7 @@ import {
   toggleFollow,
 } from "./lib/friendsService";
 import UserAvatar from "./UserAvatar";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type FriendsModalProps = {
   mode: "followers" | "following";
@@ -25,6 +26,8 @@ export default function FriendsModal({
   onClose,
   onFollowChange,
 }: FriendsModalProps) {
+  useModalScrollLock();
+
   const [users, setUsers] = useState<UserSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});

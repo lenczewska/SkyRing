@@ -11,6 +11,7 @@ import {
   sendChatMessage,
 } from "./lib/chatService";
 import { CURATED_TRAVELERS } from "./lib/friendsService";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type ChatPageProps = {
   user: User | null;
@@ -85,6 +86,8 @@ export default function ChatPage({
   const [searchQuery, setSearchQuery] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [showTravelerModal, setShowTravelerModal] = useState(false);
+
+  useModalScrollLock(showTravelerModal);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);

@@ -2,6 +2,7 @@ import { useState, useRef, type ChangeEvent } from "react";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import UserAvatar from "./UserAvatar";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type AvatarModalProps = {
   uid: string;
@@ -36,6 +37,7 @@ export default function AvatarModal({
   onClose,
   onSave,
 }: AvatarModalProps) {
+  useModalScrollLock();
   const [selectedAvatar, setSelectedAvatar] = useState<string>(currentAvatar);
   const [urlInput, setUrlInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);

@@ -19,6 +19,7 @@ import OnboardingModal from "./OnboardingModal";
 import HashtagPage from "./HashtagPage";
 import ChatPage from "./ChatPage";
 import CreatePostModal from "./CreatePostModal";
+import MobileSidebar from "./MobileSidebar";
 import { getTotalUnreadCount } from "./lib/chatService";
 import { I18nProvider, useI18n } from "./i18n";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
@@ -38,6 +39,7 @@ function AppShell() {
   const [profileMenu, setProfileMenu] = useState(false);
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   // Keep track of unread messages count for navbar badge
@@ -304,24 +306,19 @@ function AppShell() {
             >
               <circle className="nav-theme-border-bg" cx="18" cy="18" r="15" />
               <circle className="nav-theme-border-fill" cx="18" cy="18" r="15" />
-              {theme === "dark" ? (
-                <path
-                  className="nav-theme-icon"
-                  d="M18 9 a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
-                />
-              ) : (
-                <g className="nav-theme-icon">
-                  <circle cx="18" cy="18" r="4.5" />
-                  <line x1="18" y1="8" x2="18" y2="10.5" />
-                  <line x1="18" y1="25.5" x2="18" y2="28" />
-                  <line x1="8" y1="18" x2="10.5" y2="18" />
-                  <line x1="25.5" y1="18" x2="28" y2="18" />
-                  <line x1="10.9" y1="10.9" x2="12.7" y2="12.7" />
-                  <line x1="23.3" y1="23.3" x2="25.1" y2="25.1" />
-                  <line x1="10.9" y1="25.1" x2="12.7" y2="23.3" />
-                  <line x1="23.3" y1="12.7" x2="25.1" y2="10.9" />
-                </g>
-              )}
+              <g className="nav-theme-icon">
+                {theme === "dark" ? (
+                  <path
+                    transform="translate(18, 18) scale(0.7778) translate(-13, -12)"
+                    d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
+                  />
+                ) : (
+                  <g transform="translate(18, 18) scale(0.7) translate(-12, -12)">
+                    <circle cx="12" cy="12" r="4" />
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                  </g>
+                )}
+              </g>
             </svg>
           </button>
 
@@ -395,15 +392,49 @@ function AppShell() {
             </div>
           ) : (
             <button
-              className="button button-dark button-small nav-button"
+              className="button button-dark button-small nav-button user-account-button"
               onClick={() => setAuthMode("login")}
               type="button"
             >
               {home.accountAction} <span aria-hidden="true">↗</span>
             </button>
           )}
+
+          {/* Mobile Hamburger Menu Button */}
+          <button
+            type="button"
+            className={`nav-hamburger-btn ${isMobileMenuOpen ? "active" : ""}`}
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label={language === "ru" ? "Открыть меню" : "Open menu"}
+            title={language === "ru" ? "Меню" : "Menu"}
+          >
+            <span className="nav-hamburger-line" />
+            <span className="nav-hamburger-line" />
+            <span className="nav-hamburger-line" />
+            {unreadChatCount > 0 && <span className="nav-hamburger-badge-dot" />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Navigation Sidebar Drawer */}
+      <MobileSidebar
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        user={user}
+        username={username}
+        userAvatar={userAvatar}
+        language={language}
+        onLanguageChange={setLanguage}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        unreadChatCount={unreadChatCount}
+        onRequestAuth={() => setAuthMode("login")}
+        onCreatePost={() => setIsCreatePostOpen(true)}
+        onLogout={() => {
+          void signOut(auth);
+          navigate("/");
+        }}
+      />
       <Routes>
         <Route
           path="/"

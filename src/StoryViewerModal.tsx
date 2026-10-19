@@ -4,6 +4,7 @@ import type { StoryItem, UserStoryGroup } from "./types";
 import UserAvatar from "./UserAvatar";
 import { markStorySeen } from "./lib/storiesService";
 import { getDirectChatId, sendChatMessage } from "./lib/chatService";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type StoryViewerModalProps = {
   groups: UserStoryGroup[];
@@ -57,6 +58,8 @@ export default function StoryViewerModal({
   onDeleteStory,
   onStoryViewed,
 }: StoryViewerModalProps) {
+  useModalScrollLock();
+
   const [groupIndex, setGroupIndex] = useState(initialGroupIndex);
   const [storyIndex, setStoryIndex] = useState(initialStoryIndex);
   const [isPaused, setIsPaused] = useState(false);
