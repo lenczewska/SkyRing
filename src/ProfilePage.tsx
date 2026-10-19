@@ -424,24 +424,6 @@ export default function ProfilePage({
                   📷
                 </button>
               )}
-              {hasActiveStories && (
-                <div
-                  className={`profile-story-badge ${
-                    hasUnseenStories ? "badge-unseen" : "badge-seen"
-                  }`}
-                  title={
-                    hasUnseenStories
-                      ? language === "ru"
-                        ? "Новая история"
-                        : "New story"
-                      : language === "ru"
-                      ? "Смотреть историю"
-                      : "Watch story"
-                  }
-                >
-                  {hasUnseenStories ? "✨" : "▶"}
-                </div>
-              )}
             </div>
 
         <div className="profile-heading">
@@ -775,15 +757,7 @@ export default function ProfilePage({
         />
       )}
 
-      {/* Quick Navigation Links */}
-      <div className="profile-quick-links">
-        <Link to="/map">
-          {copy.map} <span>↗</span>
-        </Link>
-        <Link to="/posts">
-          {copy.posts} <span>↗</span>
-        </Link>
-      </div>
+
 
       {/* Followers / Following List Modal */}
       {modalMode && profileData && (

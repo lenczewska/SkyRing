@@ -42,9 +42,7 @@ export default function PostsPage({
   language,
   onRequestAuth,
 }: PostsPageProps) {
-  const [activeTab, setActiveTab] = useState<FeedTab>(
-    user ? "following" : "all",
-  );
+  const [activeTab, setActiveTab] = useState<FeedTab>("all");
   const [myPosts, setMyPosts] = useState<Post[]>([]);
   const [followingPosts, setFollowingPosts] = useState<Post[]>([]);
   const [allPosts, setAllPosts] = useState<Post[]>([]);
@@ -58,6 +56,19 @@ export default function PostsPage({
   const [currentUserAllowComments, setCurrentUserAllowComments] = useState<boolean>(true);
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [expandedDescIds, setExpandedDescIds] = useState<Record<string, boolean>>({});
+
+  const toggleDesc = (postId: string) => {
+    setExpandedDescIds((prev) => ({
+      ...prev,
+      [postId]: !prev[postId],
+    }));
+  };
+
+  const isDescLong = (text?: string) => {
+    if (!text) return false;
+    return text.trim().length > 100 || text.includes("\n");
+  };
 
   // Stories system state
   const [myStoryGroup, setMyStoryGroup] = useState<UserStoryGroup>({
@@ -604,62 +615,6 @@ export default function PostsPage({
         </div>
       ) : (
         <>
-          {/* Feed Tabs Bar */}
-          <div className="feed-tabs-bar">
-        {user && (
-          <button
-            className={`feed-tab-btn ${activeTab === "following" ? "active" : ""}`}
-            onClick={() => setActiveTab("following")}
-            type="button"
-          >
-            🌟 {copy.tabFollowing}
-            {visibleFollowingPosts.length > 0 && (
-              <span className="tab-badge">{visibleFollowingPosts.length}</span>
-            )}
-          </button>
-        )}
-
-        <button
-          className={`feed-tab-btn ${activeTab === "all" ? "active" : ""}`}
-          onClick={() => setActiveTab("all")}
-          type="button"
-        >
-          🌍 {copy.tabAll}
-        </button>
-
-        {user && (
-          <button
-            className={`feed-tab-btn ${activeTab === "my" ? "active" : ""}`}
-            onClick={() => setActiveTab("my")}
-            type="button"
-          >
-            ✍️ {copy.tabMy}
-            {publishedMyPosts.length > 0 && (
-              <span className="tab-badge">{publishedMyPosts.length}</span>
-            )}
-          </button>
-        )}
-
-        {user && (
-          <button
-            className={`feed-tab-btn ${activeTab === "archive" ? "active" : ""}`}
-            onClick={() => setActiveTab("archive")}
-            type="button"
-          >
-            📦 {copy.tabArchive}
-            {archivedMyPosts.length > 0 && (
-              <span className="tab-badge">{archivedMyPosts.length}</span>
-            )}
-          </button>
-        )}
-      </div>
-
-      {/* Archive Info Banner */}
-      {user && activeTab === "archive" && (
-        <div className="archived-info-banner">
-          <span>📦 {copy.archivedBanner}</span>
-        </div>
-      )}
 
       {/* Composer Section (Shown when in "My Posts" tab) */}
       {user && activeTab === "my" && (
@@ -878,15 +833,8 @@ export default function PostsPage({
                   className={`post-card ${post.isArchived ? "post-archived" : ""}`}
                   key={post.id}
                 >
-                  {post.image && (
-                    <img
-                      src={post.image}
-                      alt={post.location || post.title}
-                      className="post-card-clickable-img"
-                      onClick={() => setSelectedPost(post)}
-                    />
-                  )}
-                  <div className="post-card-body">
+                  {/* Top Header: Author info & Title (above photo) */}
+                  <div className="post-card-top">
                     {/* Author row */}
                     <div className="post-author-header">
                       <Link
@@ -950,17 +898,30 @@ export default function PostsPage({
                       </div>
                     </div>
 
-                    <h2
-                      className="post-title-link"
-                      onClick={() => setSelectedPost(post)}
-                    >
-                      <HashtagText text={post.title} />
-                    </h2>
-                    <p className="post-description-text">
-                      <HashtagText text={post.description} />
-                    </p>
+                    {/* Title directly under author name, above photo */}
+                    {post.title && (
+                      <h2
+                        className="post-title-link"
+                        onClick={() => setSelectedPost(post)}
+                      >
+                        <HashtagText text={post.title} />
+                      </h2>
+                    )}
+                  </div>
 
-                    {/* Like & Comments Action Bar */}
+                  {/* Photo */}
+                  {post.image && (
+                    <img
+                      src={post.image}
+                      alt={post.location || post.title}
+                      className="post-card-clickable-img"
+                      onClick={() => setSelectedPost(post)}
+                    />
+                  )}
+
+                  {/* Bottom section: Likes/Comments, Description, Comments */}
+                  <div className="post-card-body">
+                    {/* Like & Comments Action Bar under photo */}
                     <div className="post-actions-bar">
                       <button
                         className={`post-like-btn ${isLiked ? "liked" : ""}`}
@@ -976,6 +937,32 @@ export default function PostsPage({
                         💬 {commentsCount} {copy.comment.toLowerCase()}
                       </span>
                     </div>
+
+                    {/* Description after likes and comments, 2 lines max + read more */}
+                    {post.description && (
+                      <div className="post-description-wrapper">
+                        <p
+                          className={`post-description-text ${expandedDescIds[post.id] ? "expanded" : "clamped"}`}
+                        >
+                          <HashtagText text={post.description} />
+                        </p>
+                        {isDescLong(post.description) && (
+                          <button
+                            type="button"
+                            className="post-read-more-btn"
+                            onClick={() => toggleDesc(post.id)}
+                          >
+                            {expandedDescIds[post.id]
+                              ? language === "ru"
+                                ? "Свернуть"
+                                : "Show less"
+                              : language === "ru"
+                                ? "Читать далее"
+                                : "Read more"}
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     {/* Comments Section */}
                     {(() => {

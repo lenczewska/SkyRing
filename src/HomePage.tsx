@@ -132,14 +132,14 @@ export default function HomePage({
     return (
       <>
         <div className="profileView container">
-          <section className="member-welcome container">
+          <section className="member-welcome">
             <p className="eyebrow">
               <span /> {language === "ru" ? "СНОВА В ПУТИ" : "BACK ON THE ROAD"}
             </p>
-            <h2 className="text-[60px]">
-              {greeting}
+            <h2 className="member-welcome-title">
+              <span className="member-welcome-greeting">{greeting}</span>
               <br />
-              <em>{title}</em>
+              <em className="member-welcome-highlight">{title}</em>
             </h2>
 
             <p className="hero-description">{description}</p>
@@ -161,10 +161,10 @@ export default function HomePage({
               >
                 {language === "ru" ? "Найти друзей" : "Find friends"} ↗
               </button>
-              <span>{note}</span>
+              <span className="member-welcome-note">{note}</span>
             </div>
           </section>
-          <section>
+          <section className="member-globe-wrap">
             <GlobeView
               language={language}
               user={user}

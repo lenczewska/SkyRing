@@ -16,7 +16,7 @@ type MobileSidebarProps = {
   onToggleTheme: () => void;
   unreadChatCount: number;
   onRequestAuth: () => void;
-  onCreatePost: () => void;
+  onCreatePost?: () => void;
   onLogout: () => void;
 };
 
@@ -32,7 +32,6 @@ export default function MobileSidebar({
   onToggleTheme,
   unreadChatCount,
   onRequestAuth,
-  onCreatePost,
   onLogout,
 }: MobileSidebarProps) {
   const navigate = useNavigate();
@@ -107,15 +106,6 @@ export default function MobileSidebar({
   const handleNav = (path: string) => {
     onClose();
     navigate(path);
-  };
-
-  const handleCreatePost = () => {
-    onClose();
-    if (!user) {
-      onRequestAuth();
-    } else {
-      onCreatePost();
-    }
   };
 
   const currentPath = location.pathname;
@@ -216,39 +206,6 @@ export default function MobileSidebar({
               </button>
             </div>
           )}
-        </div>
-
-        {/* Action Button: Create Post */}
-        <div className="mobile-sidebar-action-wrap">
-          <button
-            type="button"
-            className="mobile-sidebar-create-btn"
-            onClick={handleCreatePost}
-          >
-            <span className="mobile-sidebar-create-icon">
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="12" y1="5" x2="12" y2="19" />
-                <line x1="5" y1="12" x2="19" y2="12" />
-              </svg>
-            </span>
-            <div className="mobile-sidebar-create-text">
-              <span className="mobile-sidebar-create-title">
-                {copy.createPost}
-              </span>
-              <span className="mobile-sidebar-create-desc">
-                {copy.createPostDesc}
-              </span>
-            </div>
-          </button>
         </div>
 
         {/* Primary Navigation Links */}
@@ -355,52 +312,76 @@ export default function MobileSidebar({
           )}
         </nav>
 
-        {/* Footer Settings: Theme & Language */}
+        {/* Footer Settings: Language, Theme & Account */}
         <div className="mobile-sidebar-footer">
-          {/* Theme Selector */}
-          <div className="mobile-sidebar-preference-row">
-            <span className="mobile-sidebar-pref-label">{copy.theme}:</span>
-            <div className="mobile-sidebar-theme-toggle">
+          <div className="mobile-sidebar-controls-row">
+            {/* Language Switcher (EN / RU like desktop header) */}
+            <div className="language-switcher mobile-sidebar-lang" aria-label="Language">
               <button
-                type="button"
-                className={`mobile-theme-opt ${theme === "light" ? "active" : ""}`}
-                onClick={() => {
-                  if (theme !== "light") onToggleTheme();
-                }}
-              >
-                ☀️ {copy.themeLight}
-              </button>
-              <button
-                type="button"
-                className={`mobile-theme-opt ${theme === "dark" ? "active" : ""}`}
-                onClick={() => {
-                  if (theme !== "dark") onToggleTheme();
-                }}
-              >
-                🌙 {copy.themeDark}
-              </button>
-            </div>
-          </div>
-
-          {/* Language Selector */}
-          <div className="mobile-sidebar-preference-row">
-            <span className="mobile-sidebar-pref-label">{copy.language}:</span>
-            <div className="mobile-sidebar-lang-toggle">
-              <button
-                type="button"
-                className={`mobile-lang-opt ${language === "ru" ? "active" : ""}`}
-                onClick={() => onLanguageChange("ru")}
-              >
-                Русский
-              </button>
-              <button
-                type="button"
-                className={`mobile-lang-opt ${language === "en" ? "active" : ""}`}
+                className={language === "en" ? "language-active" : ""}
                 onClick={() => onLanguageChange("en")}
+                type="button"
               >
-                English
+                EN
+              </button>
+              <span>/</span>
+              <button
+                className={language === "ru" ? "language-active" : ""}
+                onClick={() => onLanguageChange("ru")}
+                type="button"
+              >
+                RU
               </button>
             </div>
+
+            {/* Theme Toggle Button (Moon / Sun) */}
+            <button
+              className="theme-toggle-btn mobile-sidebar-theme-btn"
+              onClick={onToggleTheme}
+              type="button"
+              aria-label={
+                theme === "dark"
+                  ? language === "ru"
+                    ? "Светлая тема"
+                    : "Light mode"
+                  : language === "ru"
+                    ? "Тёмная тема"
+                    : "Dark mode"
+              }
+              title={
+                theme === "dark"
+                  ? language === "ru"
+                    ? "Светлая тема"
+                    : "Light mode"
+                  : language === "ru"
+                    ? "Тёмная тема"
+                    : "Dark mode"
+              }
+            >
+              <svg
+                className="nav-theme-svg"
+                viewBox="0 0 36 36"
+                width="34"
+                height="34"
+                aria-hidden="true"
+              >
+                <circle className="nav-theme-border-bg" cx="18" cy="18" r="15" />
+                <circle className="nav-theme-border-fill" cx="18" cy="18" r="15" />
+                <g className="nav-theme-icon">
+                  {theme === "dark" ? (
+                    <path
+                      transform="translate(18, 18) scale(0.7778) translate(-13, -12)"
+                      d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
+                    />
+                  ) : (
+                    <g transform="translate(18, 18) scale(0.7) translate(-12, -12)">
+                      <circle cx="12" cy="12" r="4" />
+                      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                    </g>
+                  )}
+                </g>
+              </svg>
+            </button>
           </div>
 
           {/* Log Out Button */}

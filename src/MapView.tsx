@@ -461,6 +461,26 @@ export default function MapView({
   const [rotation, setRotation] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [hovering, setHovering] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      window.matchMedia("(max-width: 860px)").matches ||
+      window.matchMedia("(pointer: coarse)").matches
+    );
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const checkMobile = () => {
+      const isMob =
+        window.matchMedia("(max-width: 860px)").matches ||
+        window.matchMedia("(pointer: coarse)").matches;
+      setIsMobile(isMob);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
   const [hoveredPlace, setHoveredPlace] = useState<{
     label: string;
     x: number;
@@ -861,7 +881,11 @@ export default function MapView({
   });
 
   useEffect(() => {
-    if (mode === "profile" || dragging || hovering) return undefined;
+    if (mode === "profile") return undefined;
+    // On desktop: pause when dragging or hovering
+    // On mobile: NEVER pause! Continue rotating continuously even when touching or scrolling!
+    if (!isMobile && (dragging || hovering)) return undefined;
+
     let frame = 0;
     let lastFrame = performance.now();
     const animate = (time: number) => {
@@ -873,7 +897,7 @@ export default function MapView({
     };
     frame = window.requestAnimationFrame(animate);
     return () => window.cancelAnimationFrame(frame);
-  }, [mode, dragging, hovering]);
+  }, [mode, dragging, hovering, isMobile]);
 
   const transformRef = useRef<{ zoom: number; x: number; y: number }>({
     zoom: 1,
@@ -986,20 +1010,27 @@ export default function MapView({
   }, [mode, readOnly]);
 
   const handlePointerDown = (event: PointerEvent<SVGSVGElement>) => {
+    if (isMobile || event.pointerType === "touch") return;
     pointerStart.current = { x: event.clientX, y: event.clientY };
     pointerDragged.current = false;
     setDragging(true);
   };
-  const handlePointerUp = () => {
+  const handlePointerUp = (event?: PointerEvent<SVGSVGElement>) => {
+    if (isMobile || event?.pointerType === "touch") return;
     setDragging(false);
   };
-  const handlePointerEnter = () => setHovering(true);
+  const handlePointerEnter = (event?: PointerEvent<any>) => {
+    if (isMobile || event?.pointerType === "touch") return;
+    setHovering(true);
+  };
   const handlePointerLeave = () => {
+    if (isMobile) return;
     setHovering(false);
     setDragging(false);
     pointerStart.current = null;
   };
   const handlePointerMove = (event: PointerEvent<SVGSVGElement>) => {
+    if (isMobile || event.pointerType === "touch") return;
     if (dragging) {
       if (pointerStart.current) {
         const dist = Math.hypot(
@@ -1157,7 +1188,17 @@ export default function MapView({
             : "Interactive world map"
         }
         style={{
-          touchAction: "none",
+          touchAction:
+            isMobile || mode === "globe"
+              ? isMobile
+                ? "pan-y"
+                : "none"
+              : mode === "profile" && !readOnly && mapZoom > 1
+                ? isPanningState
+                  ? "grabbing"
+                  : "grab"
+                : "pan-y",
+          pointerEvents: isMobile && mode === "globe" ? "none" : undefined,
           cursor:
             mode === "profile" && !readOnly && mapZoom > 1
               ? isPanningState

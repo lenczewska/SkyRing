@@ -283,7 +283,9 @@ export default function ChatPage({
         };
 
   return (
-    <section className="container chat-page-container">
+    <section
+      className={`container chat-page-container ${activeChatId ? "has-active-chat" : "no-active-chat"}`}
+    >
       {/* Guest Notice Banner if not logged in */}
       {!user && (
         <div className="chat-guest-banner">
@@ -298,7 +300,9 @@ export default function ChatPage({
         </div>
       )}
 
-      <div className="chat-layout-card">
+      <div
+        className={`chat-layout-card ${activeChatId ? "has-active-chat" : "no-active-chat"}`}
+      >
         {/* ================= LEFT SIDEBAR: CONVERSATIONS LIST ================= */}
         <aside
           className={`chat-sidebar ${activeChatId ? "chat-sidebar-hidden-mobile" : ""}`}
