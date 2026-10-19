@@ -657,38 +657,41 @@ h2 em {
   width: 23px;
   height: 23px;
 }
-@media (max-width: 800px) {
+@media (max-width: 860px) {
   .container {
-    width: min(100% - 32px, 600px);
+    width: min(100% - 24px, 600px);
   }
   .nav {
-    min-height: 64px;
+    min-height: 60px;
     gap: 12px;
   }
   .nav-links {
-    display: none;
+    display: none !important;
   }
   .login-link {
-    display: none;
+    display: none !important;
   }
 
   /* Hamburger button appears on mobile */
   .nav-hamburger-btn {
-    display: inline-flex;
+    display: inline-flex !important;
   }
 
   /* Compact actions on mobile navbar: hide redundant buttons handled in sidebar */
   .nav-actions {
     gap: 10px;
+    display: flex !important;
+    align-items: center !important;
+    margin-left: auto;
   }
   .nav-actions .language-switcher {
-    display: none;
+    display: none !important;
   }
   .nav-actions .profile-nav {
-    display: none;
+    display: none !important;
   }
   .nav-actions .user-account-button {
-    display: none;
+    display: none !important;
   }
   .hero {
     display: flex;
@@ -1115,9 +1118,11 @@ h2 em {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 4.5px;
-  width: 36px;
-  height: 36px;
+  gap: 4px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  min-height: 38px;
   border-radius: 50%;
   background: var(--surface);
   border: 1.5px solid var(--border-strong);
@@ -1128,6 +1133,13 @@ h2 em {
   outline: none;
   transition: all 0.2s ease;
   user-select: none;
+  flex-shrink: 0;
+}
+
+@media (max-width: 860px) {
+  .nav-hamburger-btn {
+    display: inline-flex !important;
+  }
 }
 
 .nav-hamburger-btn:hover {
@@ -1143,11 +1155,25 @@ h2 em {
 
 .nav-hamburger-line {
   display: block;
-  width: 16px;
+  width: 17px;
   height: 2px;
   background: currentColor;
   border-radius: 2px;
-  transition: all 0.25s ease;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  transform-origin: center;
+}
+
+.nav-hamburger-btn.active .nav-hamburger-line:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.nav-hamburger-btn.active .nav-hamburger-line:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.nav-hamburger-btn.active .nav-hamburger-line:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
 }
 
 .nav-hamburger-badge-dot {
@@ -9403,6 +9429,498 @@ body:has(.chat-page-container) {
 
 .create-post-submit-btn {
   font-weight: 700;
+}
+
+/* ==========================================================================
+   COMPREHENSIVE MOBILE OPTIMIZATION & RESPONSIVE SUITE
+   ========================================================================== */
+
+/* 1. Global Touch, Viewport & Mobile Safe-Areas */
+@media (max-width: 860px) {
+  html,
+  body {
+    max-width: 100vw;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Prevent iOS Safari 300ms tap delay & auto-zoom on inputs */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* Critical: prevents iOS Safari auto-zoom */
+  }
+
+  /* Main container width on mobile */
+  .container {
+    width: min(100% - 24px, 640px) !important;
+  }
+
+  /* Reserve bottom space for MobileBottomNav */
+  .site-shell {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* 2. Mobile Bottom Navigation Bar */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+    background: var(--paper);
+    background: color-mix(in srgb, var(--paper) 92%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border-strong);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    height: calc(58px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .mobile-bottom-nav-inner {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0 8px;
+    height: 58px;
+  }
+
+  .mobile-nav-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 10.5px;
+    font-weight: 600;
+    font-family: "DM Sans", sans-serif;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
+    user-select: none;
+  }
+
+  .mobile-nav-tab:active {
+    transform: scale(0.92);
+  }
+
+  .mobile-nav-tab.active {
+    color: var(--coral);
+  }
+
+  .mobile-nav-tab.active .mobile-nav-icon svg {
+    stroke: var(--coral);
+  }
+
+  .mobile-nav-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+  }
+
+  .mobile-nav-avatar-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    overflow: hidden;
+  }
+
+  .mobile-nav-tab.active .mobile-nav-avatar-icon {
+    box-shadow: 0 0 0 2px var(--coral);
+  }
+
+  /* Center Floating Create Action Button */
+  .mobile-nav-create-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--coral) 0%, #f4a261 100%);
+    border: 2px solid var(--paper);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(231, 111, 81, 0.45);
+    transform: translateY(-8px);
+    transition: all 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    padding: 0;
+    margin: 0 4px;
+    outline: none;
+  }
+
+  .mobile-nav-create-btn:hover {
+    transform: translateY(-10px) scale(1.08);
+  }
+
+  .mobile-nav-create-btn:active {
+    transform: translateY(-6px) scale(0.95);
+  }
+
+  .mobile-nav-create-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* 3. Hero & Home Page Mobile Polish */
+@media (max-width: 768px) {
+  .hero-title {
+    font-size: clamp(32px, 8vw, 52px) !important;
+    line-height: 1.05 !important;
+  }
+
+  .hero-body {
+    font-size: 15px !important;
+    line-height: 1.5 !important;
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .hero-actions .button {
+    width: 100%;
+    justify-content: center;
+    font-size: 15px;
+    padding: 13px 20px;
+  }
+
+  .features-grid,
+  .intro-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+
+  .feature-card,
+  .intro-card {
+    padding: 22px 18px !important;
+  }
+}
+
+/* 4. Profile Page Mobile Polish */
+@media (max-width: 680px) {
+  .profile-page {
+    padding-top: 16px !important;
+  }
+
+  .profile-header {
+    display: flex;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 16px !important;
+  }
+
+  .profile-avatar-wrapper {
+    margin: 0 auto !important;
+  }
+
+  .profile-heading {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .profile-eyebrow-row {
+    justify-content: center !important;
+  }
+
+  .profile-title-row {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 14px !important;
+    width: 100%;
+  }
+
+  .profile-title-row h1 {
+    font-size: clamp(26px, 7vw, 36px) !important;
+    margin: 0;
+  }
+
+  .profile-actions-group,
+  .profile-external-actions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    gap: 10px !important;
+  }
+
+  .profile-settings-btn,
+  .follow-header-button,
+  .profile-message-btn {
+    flex: 1;
+    max-width: 180px;
+    justify-content: center;
+    padding: 10px 14px !important;
+    font-size: 13.5px !important;
+  }
+
+  /* Profile statistics in neat mobile grid */
+  .profile-stats {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    background: var(--surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 14px !important;
+    padding: 12px 6px !important;
+    margin: 14px 0 !important;
+  }
+
+  .profile-stats button,
+  .profile-stats .profile-stat-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+  }
+
+  .profile-stats strong {
+    font-size: 16px !important;
+    color: var(--text-primary);
+  }
+
+  .profile-stats span {
+    font-size: 10.5px !important;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* Bio & Location Tags */
+  .profile-bio-text {
+    font-size: 13.5px !important;
+    max-width: 100% !important;
+    line-height: 1.5 !important;
+    margin: 8px 0 !important;
+  }
+
+  .profile-tags-row {
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+  }
+
+  /* Tabs */
+  .profile-tabs-nav {
+    display: flex;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px;
+  }
+
+  .profile-tab-button {
+    flex: 1;
+    min-width: 90px;
+    text-align: center;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  /* Posts Grid on Mobile */
+  .profile-post-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .profile-post-card {
+    display: flex !important;
+    flex-direction: column !important;
+    border-radius: 14px !important;
+    overflow: hidden;
+  }
+
+  .profile-post-card img {
+    width: 100% !important;
+    height: 220px !important;
+    max-height: 240px !important;
+    object-fit: cover !important;
+  }
+
+  .profile-post-card > div {
+    padding: 16px 14px !important;
+  }
+
+  .profile-post-card h2 {
+    font-size: 20px !important;
+    margin: 10px 0 6px !important;
+  }
+}
+
+/* 5. Feed & Posts Page Mobile Polish */
+@media (max-width: 768px) {
+  .feed-tabs-bar {
+    display: flex !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    padding: 4px 2px 10px !important;
+    white-space: nowrap !important;
+  }
+
+  .feed-tabs-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .feed-tab-btn {
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+    flex-shrink: 0 !important;
+  }
+
+  .posts-feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .feed-post-card {
+    border-radius: 14px !important;
+    padding: 14px !important;
+  }
+
+  .feed-post-image {
+    max-height: 340px !important;
+    border-radius: 10px !important;
+  }
+
+  .guest-post-intro h2,
+  .guest-map-intro h2 {
+    font-size: clamp(24px, 6vw, 32px) !important;
+    line-height: 1.15 !important;
+  }
+}
+
+/* 6. Travel Map Page Mobile Polish */
+@media (max-width: 768px) {
+  .travel-map-page {
+    padding-top: 16px !important;
+  }
+
+  .travel-map-page > h1 {
+    font-size: clamp(26px, 7vw, 38px) !important;
+    line-height: 1.1 !important;
+  }
+
+  .travel-map-page .profile-map-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  .travel-map-page .map-panel,
+  .travel-map-page .globe-panel {
+    min-height: 340px !important;
+    height: 48vh !important;
+    max-height: 420px !important;
+  }
+
+  .place-list {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .place-card-item {
+    padding: 14px 16px !important;
+  }
+}
+
+/* 7. Modals & Dialogs Mobile Polish */
+@media (max-width: 600px) {
+  .settings-modal-overlay,
+  .auth-overlay,
+  .avatar-modal-overlay,
+  .post-detail-overlay,
+  .create-post-modal-overlay,
+  .visited-places-overlay,
+  .onboarding-overlay,
+  .chat-modal-overlay {
+    padding: 8px !important;
+    align-items: flex-end !important; /* Bottom-sheet feel on mobile */
+  }
+
+  .settings-modal,
+  .auth-modal,
+  .avatar-modal,
+  .post-detail-modal,
+  .create-post-modal-container,
+  .visited-places-modal,
+  .onboarding-modal,
+  .chat-select-modal,
+  .edit-post-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    max-height: 92vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.45) !important;
+    margin: 0 !important;
+    padding: 20px 16px !important;
+  }
+
+  .auth-modal h2 {
+    font-size: 28px !important;
+  }
+
+  .settings-modal-header h2,
+  .create-post-modal-header h2,
+  .onboarding-modal h2 {
+    font-size: 20px !important;
+  }
+
+  .create-post-modal-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .create-post-card-preview {
+    max-height: 240px;
+    overflow: hidden;
+  }
+
+  .post-detail-media-container img {
+    max-height: 260px !important;
+  }
 }
 
 

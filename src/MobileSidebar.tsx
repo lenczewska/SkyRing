@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { User } from "firebase/auth";
 import { useNavigate, useLocation } from "react-router-dom";
 import UserAvatar from "./UserAvatar";
+import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type MobileSidebarProps = {
   isOpen: boolean;
@@ -37,16 +38,7 @@ export default function MobileSidebar({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Lock body scroll when sidebar is open
-  useEffect(() => {
-    if (isOpen) {
-      const prevOverflow = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = prevOverflow;
-      };
-    }
-  }, [isOpen]);
+  useModalScrollLock(isOpen);
 
   // Close on Escape key
   useEffect(() => {

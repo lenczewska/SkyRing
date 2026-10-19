@@ -20,6 +20,7 @@ import HashtagPage from "./HashtagPage";
 import ChatPage from "./ChatPage";
 import CreatePostModal from "./CreatePostModal";
 import MobileSidebar from "./MobileSidebar";
+import MobileBottomNav from "./MobileBottomNav";
 import { getTotalUnreadCount } from "./lib/chatService";
 import { I18nProvider, useI18n } from "./i18n";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
@@ -404,8 +405,8 @@ function AppShell() {
           <button
             type="button"
             className={`nav-hamburger-btn ${isMobileMenuOpen ? "active" : ""}`}
-            onClick={() => setIsMobileMenuOpen(true)}
-            aria-label={language === "ru" ? "Открыть меню" : "Open menu"}
+            onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+            aria-label={language === "ru" ? "Меню навигации" : "Navigation menu"}
             title={language === "ru" ? "Меню" : "Menu"}
           >
             <span className="nav-hamburger-line" />
@@ -591,6 +592,21 @@ function AppShell() {
           }}
         />
       )}
+      {/* Mobile Bottom Navigation Bar */}
+      <MobileBottomNav
+        user={user}
+        username={username}
+        userAvatar={userAvatar}
+        unreadChatCount={unreadChatCount}
+        onRequestAuth={() => setAuthMode("login")}
+        onCreatePost={() => {
+          if (!user) {
+            setAuthMode("register");
+          } else {
+            setIsCreatePostOpen(true);
+          }
+        }}
+      />
     </main>
   );
 }
