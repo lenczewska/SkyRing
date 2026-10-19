@@ -15,7 +15,7 @@ export default function MobileBottomNav({
   user,
   username,
   userAvatar = "",
-  unreadChatCount = 0,
+  unreadChatCount: _unreadChatCount = 0,
   onRequestAuth,
   onCreatePost,
 }: MobileBottomNavProps) {
