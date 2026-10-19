@@ -38,6 +38,7 @@ type CommonCopy = {
   profile: string;
   map: string;
   posts: string;
+  chat: string;
   logout: string;
   languageLabel: string;
 };
@@ -98,6 +99,7 @@ export const translations: Record<
       profile: "My profile",
       map: "Travel map",
       posts: "Posts",
+      chat: "Messages",
       logout: "Log out",
       languageLabel: "Choose language",
     },
@@ -188,6 +190,7 @@ export const translations: Record<
       profile: "Мой профиль",
       map: "Карта путешествий",
       posts: "Посты",
+      chat: "Сообщения",
       logout: "Выйти",
       languageLabel: "Выбор языка",
     },

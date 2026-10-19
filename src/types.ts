@@ -1,7 +1,7 @@
 import type { User } from 'firebase/auth'
 
 export type AuthMode = 'login' | 'register'
-export type Page = 'home' | 'profile' | 'map' | 'posts'
+export type Page = 'home' | 'profile' | 'map' | 'posts' | 'chat'
 export type AuthUser = User | null
 
 export type VisitedPlace = {
@@ -71,6 +71,7 @@ export type UserProfile = {
   followers?: string[]
   visitedCountries?: VisitedPlace[]
   posts?: Post[]
+  stories?: StoryItem[]
   createdAt?: string | any
 }
 
@@ -87,4 +88,62 @@ export type UserSummary = {
   isFollowing?: boolean
   isFollower?: boolean
   isMutual?: boolean
+}
+
+export type StoryItem = {
+  id: string
+  authorId?: string
+  authorUsername?: string
+  authorAvatar?: string
+  mediaUrl: string
+  caption?: string
+  location?: string
+  createdAt: string
+  duration?: number
+  likes?: string[]
+}
+
+export type UserStoryGroup = {
+  userId: string
+  username: string
+  userAvatar?: string
+  stories: StoryItem[]
+  hasUnseen?: boolean
+  lastUpdated?: string
+}
+
+export type ChatMessage = {
+  id: string
+  chatId: string
+  senderId: string
+  senderUsername: string
+  senderAvatar?: string
+  text: string
+  createdAt: string
+  replyToStory?: {
+    storyId: string
+    mediaUrl: string
+    caption?: string
+  }
+  isRead?: boolean
+}
+
+export type ChatConversation = {
+  id: string
+  participantIds: string[]
+  participantUsernames: string[]
+  otherUser: {
+    uid: string
+    username: string
+    avatar?: string
+    location?: string
+    isOnline?: boolean
+  }
+  lastMessage?: {
+    text: string
+    senderUsername: string
+    createdAt: string
+  }
+  unreadCount: number
+  updatedAt: string
 }

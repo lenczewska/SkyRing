@@ -17,6 +17,9 @@ import TravelMapPage from "./TravelMapPage";
 import PostsPage from "./PostsPage";
 import OnboardingModal from "./OnboardingModal";
 import HashtagPage from "./HashtagPage";
+import ChatPage from "./ChatPage";
+import CreatePostModal from "./CreatePostModal";
+import { getTotalUnreadCount } from "./lib/chatService";
 import { I18nProvider, useI18n } from "./i18n";
 import { ThemeProvider, useTheme } from "./ThemeProvider";
 import type { AuthMode } from "./types";
@@ -33,7 +36,23 @@ function AppShell() {
     username: string;
   } | null>(null);
   const [profileMenu, setProfileMenu] = useState(false);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const navigate = useNavigate();
+
+  // Keep track of unread messages count for navbar badge
+  useEffect(() => {
+    const updateUnread = () => {
+      const count = getTotalUnreadCount({
+        uid: user?.uid || "guest",
+        username: username || "you",
+      });
+      setUnreadChatCount(count);
+    };
+    updateUnread();
+    const interval = setInterval(updateUnread, 3000);
+    return () => clearInterval(interval);
+  }, [user?.uid, username]);
 
   useEffect(() => {
     let unsubscribeDoc: (() => void) | null = null;
@@ -151,18 +170,73 @@ function AppShell() {
               </g>
             </svg>
           </button>
+          {/* Feed / Posts button */}
+          <button
+            className="nav-feed-btn"
+            onClick={() => navigate("/posts")}
+            type="button"
+            title={language === "ru" ? "Лента путешествий" : "Travel Feed"}
+            aria-label={language === "ru" ? "Лента путешествий" : "Travel Feed"}
+          >
+            <svg
+              className="nav-feed-svg"
+              viewBox="0 0 36 36"
+              width="32"
+              height="32"
+              aria-hidden="true"
+            >
+              <circle className="nav-feed-border-bg" cx="18" cy="18" r="15" />
+              <circle className="nav-feed-border-fill" cx="18" cy="18" r="15" />
+              <g className="nav-feed-icon">
+                <rect
+                  x="11.5"
+                  y="11"
+                  width="13"
+                  height="14"
+                  rx="2"
+                  strokeWidth="1.6"
+                  className="nav-feed-rect"
+                />
+                <line
+                  x1="14.5"
+                  y1="15"
+                  x2="21.5"
+                  y2="15"
+                  strokeWidth="1.5"
+                  className="nav-feed-line nav-feed-line-1"
+                />
+                <line
+                  x1="14.5"
+                  y1="18"
+                  x2="21.5"
+                  y2="18"
+                  strokeWidth="1.5"
+                  className="nav-feed-line nav-feed-line-2"
+                />
+                <line
+                  x1="14.5"
+                  y1="21"
+                  x2="18.5"
+                  y2="21"
+                  strokeWidth="1.5"
+                  className="nav-feed-line nav-feed-line-3"
+                />
+              </g>
+            </svg>
+          </button>
+          {/* Create Post button */}
           <button
             className="nav-plus-btn"
             onClick={() => {
               if (!user) {
                 setAuthMode("register");
               } else {
-                navigate("/posts");
+                setIsCreatePostOpen(true);
               }
             }}
             type="button"
-            title={language === "ru" ? "Создать пост / Лента" : "Create post / Feed"}
-            aria-label={language === "ru" ? "Создать пост / Лента" : "Create post / Feed"}
+            title={language === "ru" ? "Создать публикацию" : "Create post"}
+            aria-label={language === "ru" ? "Создать публикацию" : "Create post"}
           >
             <svg
               className="nav-plus-svg"
@@ -176,6 +250,41 @@ function AppShell() {
               <path className="nav-plus-cross" d="M18 11 V25 M11 18 H25" />
             </svg>
           </button>
+          <button
+            className={`nav-chat-btn ${unreadChatCount > 0 ? "has-unread" : ""}`}
+            onClick={() => navigate("/chat")}
+            type="button"
+            title={language === "ru" ? "Сообщения / Чат" : "Messages / Chat"}
+            aria-label={language === "ru" ? "Сообщения / Чат" : "Messages / Chat"}
+          >
+            <svg
+              className="nav-chat-svg"
+              viewBox="0 0 36 36"
+              width="32"
+              height="32"
+              aria-hidden="true"
+            >
+              <circle className="nav-chat-border-bg" cx="18" cy="18" r="15" />
+              <circle className="nav-chat-border-fill" cx="18" cy="18" r="15" />
+              <g className="nav-chat-icon-group">
+                <path
+                  d="M12 14c0-1.7 1.3-3 3-3h6c1.7 0 3 1.3 3 3v5c0 1.7-1.3 3-3 3h-2.5L15 24.5V22h-0c-1.7 0-3-1.3-3-3v-5z"
+                  className="nav-chat-icon-path"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="15.5" cy="16.5" r="1.1" className="nav-chat-dot nav-chat-dot-1" />
+                <circle cx="18.5" cy="16.5" r="1.1" className="nav-chat-dot nav-chat-dot-2" />
+                <circle cx="21.5" cy="16.5" r="1.1" className="nav-chat-dot nav-chat-dot-3" />
+              </g>
+            </svg>
+            {unreadChatCount > 0 && (
+              <span className="nav-chat-badge">{unreadChatCount}</span>
+            )}
+          </button>
         </div>
         <div className="nav-actions">
           {/* Theme Switcher Toggle */}
@@ -186,18 +295,34 @@ function AppShell() {
             aria-label={theme === "dark" ? "Переключить на светлую тему" : "Переключить на тёмную тему"}
             title={theme === "dark" ? (language === "ru" ? "Светлая тема" : "Light mode") : (language === "ru" ? "Тёмная тема" : "Dark mode")}
           >
-            <span className="theme-toggle-icon">
+            <svg
+              className="nav-theme-svg"
+              viewBox="0 0 36 36"
+              width="32"
+              height="32"
+              aria-hidden="true"
+            >
+              <circle className="nav-theme-border-bg" cx="18" cy="18" r="15" />
+              <circle className="nav-theme-border-fill" cx="18" cy="18" r="15" />
               {theme === "dark" ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-                </svg>
+                <path
+                  className="nav-theme-icon"
+                  d="M18 9 a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"
+                />
               ) : (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="4" />
-                  <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
-                </svg>
+                <g className="nav-theme-icon">
+                  <circle cx="18" cy="18" r="4.5" />
+                  <line x1="18" y1="8" x2="18" y2="10.5" />
+                  <line x1="18" y1="25.5" x2="18" y2="28" />
+                  <line x1="8" y1="18" x2="10.5" y2="18" />
+                  <line x1="25.5" y1="18" x2="28" y2="18" />
+                  <line x1="10.9" y1="10.9" x2="12.7" y2="12.7" />
+                  <line x1="23.3" y1="23.3" x2="25.1" y2="25.1" />
+                  <line x1="10.9" y1="25.1" x2="12.7" y2="23.3" />
+                  <line x1="23.3" y1="12.7" x2="25.1" y2="10.9" />
+                </g>
               )}
-            </span>
+            </svg>
           </button>
 
           {/* Language Switcher */}
@@ -243,6 +368,16 @@ function AppShell() {
                     type="button"
                   >
                     {common.profile}
+                  </button>
+                  <button
+                    className="nav-button"
+                    onClick={() => {
+                      navigate("/chat");
+                      setProfileMenu(false);
+                    }}
+                    type="button"
+                  >
+                    {common.chat}
                   </button>
                   <button
                     className="nav-button menu-logout"
@@ -349,6 +484,30 @@ function AppShell() {
             />
           }
         />
+        <Route
+          path="/chat"
+          element={
+            <ChatPage
+              user={user}
+              username={username}
+              userAvatar={userAvatar}
+              language={language}
+              onRequestAuth={() => setAuthMode("login")}
+            />
+          }
+        />
+        <Route
+          path="/chat/:targetUsername"
+          element={
+            <ChatPage
+              user={user}
+              username={username}
+              userAvatar={userAvatar}
+              language={language}
+              onRequestAuth={() => setAuthMode("login")}
+            />
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       {authMode && (
@@ -385,6 +544,19 @@ function AppShell() {
           onComplete={() => {
             setOnboardingUser(null);
             navigate("/profile");
+          }}
+        />
+      )}
+      {/* Global Create Post Modal */}
+      {isCreatePostOpen && user && (
+        <CreatePostModal
+          user={user}
+          username={username}
+          userAvatar={userAvatar}
+          language={language}
+          onClose={() => setIsCreatePostOpen(false)}
+          onPostCreated={() => {
+            navigate("/posts");
           }}
         />
       )}

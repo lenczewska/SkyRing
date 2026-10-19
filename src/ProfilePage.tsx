@@ -3,13 +3,14 @@ import type { User } from "firebase/auth";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import MapView from "./MapView";
-import type { Post, UserProfile, VisitedPlace } from "./types";
+import type { Post, UserProfile, UserStoryGroup, VisitedPlace } from "./types";
 import { db } from "./firebase";
 import {
   fetchUserProfile,
   getLocalFollowing,
   toggleFollow,
 } from "./lib/friendsService";
+import { deleteStory, getStoriesForUser } from "./lib/storiesService";
 import FriendsModal from "./FriendsModal";
 import FriendSearchPanel from "./FriendSearchPanel";
 import PostMenu from "./PostMenu";
@@ -18,6 +19,7 @@ import UserAvatar from "./UserAvatar";
 import AvatarModal from "./AvatarModal";
 import VisitedPlacesModal from "./VisitedPlacesModal";
 import PostDetailModal from "./PostDetailModal";
+import StoryViewerModal from "./StoryViewerModal";
 import HashtagText from "./HashtagText";
 
 type ProfilePageProps = {
@@ -75,6 +77,8 @@ export default function ProfilePage({
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [showPlacesModal, setShowPlacesModal] = useState(false);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [userStories, setUserStories] = useState<UserStoryGroup | null>(null);
+  const [showStoryViewer, setShowStoryViewer] = useState(false);
 
   const copy =
     language === "ru"
@@ -235,6 +239,16 @@ export default function ProfilePage({
     }
 
     setLoading(false);
+    void refreshUserStories();
+  };
+
+  const refreshUserStories = async () => {
+    try {
+      const st = await getStoriesForUser(targetUsername, user?.uid, currentUsername);
+      setUserStories(st);
+    } catch (err) {
+      console.warn("Could not load user stories:", err);
+    }
   };
 
   useEffect(() => {
@@ -331,6 +345,8 @@ export default function ProfilePage({
   };
 
   const displayName = profileData?.username || targetUsername || "traveller";
+  const hasActiveStories = Boolean(userStories && userStories.stories.length > 0);
+  const hasUnseenStories = Boolean(userStories?.hasUnseen);
 
   return (
     <section className="profile-page container">
@@ -357,26 +373,76 @@ export default function ProfilePage({
 
       {/* Profile Header */}
       <div className="profile-header">
-        <div className="profile-avatar-wrapper">
-          <UserAvatar
-            avatar={profileData?.avatar || (isOwnProfile ? userAvatar : undefined)}
-            username={displayName}
-            size={126}
-            className={`profile-avatar ${isOwnProfile ? "avatar-editable" : ""}`}
-            onClick={isOwnProfile ? () => setShowAvatarModal(true) : undefined}
-          />
-          {isOwnProfile && (
-            <button
-              type="button"
-              className="profile-avatar-edit-badge"
-              onClick={() => setShowAvatarModal(true)}
-              title={language === "ru" ? "Сменить фото профиля" : "Change profile photo"}
-              aria-label={language === "ru" ? "Сменить фото профиля" : "Change profile photo"}
+            <div
+              className={`profile-avatar-wrapper ${
+                hasActiveStories
+                  ? hasUnseenStories
+                    ? "has-stories profile-story-ring-unseen"
+                    : "has-stories profile-story-ring-seen"
+                  : ""
+              }`}
+              onClick={() => {
+                if (hasActiveStories) {
+                  setShowStoryViewer(true);
+                } else if (isOwnProfile) {
+                  setShowAvatarModal(true);
+                }
+              }}
+              role={hasActiveStories || isOwnProfile ? "button" : undefined}
+              tabIndex={hasActiveStories || isOwnProfile ? 0 : undefined}
+              title={
+                hasActiveStories
+                  ? language === "ru"
+                    ? "Смотреть истории"
+                    : "Watch stories"
+                  : isOwnProfile
+                  ? language === "ru"
+                    ? "Сменить фото"
+                    : "Change photo"
+                  : undefined
+              }
             >
-              📷
-            </button>
-          )}
-        </div>
+              <div className={hasActiveStories ? "profile-avatar-inner" : ""}>
+                <UserAvatar
+                  avatar={profileData?.avatar || (isOwnProfile ? userAvatar : undefined)}
+                  username={displayName}
+                  size={hasActiveStories ? 116 : 126}
+                  className={`profile-avatar ${hasActiveStories ? "profile-avatar-with-story" : isOwnProfile ? "avatar-editable" : ""}`}
+                />
+              </div>
+              {isOwnProfile && (
+                <button
+                  type="button"
+                  className="profile-avatar-edit-badge"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowAvatarModal(true);
+                  }}
+                  title={language === "ru" ? "Сменить фото профиля" : "Change profile photo"}
+                  aria-label={language === "ru" ? "Сменить фото профиля" : "Change profile photo"}
+                >
+                  📷
+                </button>
+              )}
+              {hasActiveStories && (
+                <div
+                  className={`profile-story-badge ${
+                    hasUnseenStories ? "badge-unseen" : "badge-seen"
+                  }`}
+                  title={
+                    hasUnseenStories
+                      ? language === "ru"
+                        ? "Новая история"
+                        : "New story"
+                      : language === "ru"
+                      ? "Смотреть историю"
+                      : "Watch story"
+                  }
+                >
+                  {hasUnseenStories ? "✨" : "▶"}
+                </div>
+              )}
+            </div>
 
         <div className="profile-heading">
           <div className="profile-eyebrow-row">
@@ -407,13 +473,23 @@ export default function ProfilePage({
             )}
 
             {!isOwnProfile && (
-              <button
-                className={`button follow-header-button ${isFollowing ? "following" : "button-coral"}`}
-                onClick={() => void handleToggleFollow()}
-                type="button"
-              >
-                {isFollowing ? copy.followingBtn : copy.follow}
-              </button>
+              <div className="profile-external-actions">
+                <button
+                  className={`button follow-header-button ${isFollowing ? "following" : "button-coral"}`}
+                  onClick={() => void handleToggleFollow()}
+                  type="button"
+                >
+                  {isFollowing ? copy.followingBtn : copy.follow}
+                </button>
+                <button
+                  className="button button-small button-outline profile-message-btn"
+                  onClick={() => navigate(`/chat/${targetUsername}`)}
+                  type="button"
+                  title={language === "ru" ? "Написать сообщение" : "Send message"}
+                >
+                  💬 {language === "ru" ? "Написать" : "Message"}
+                </button>
+              </div>
             )}
           </div>
 
@@ -829,6 +905,30 @@ export default function ProfilePage({
                 return updated;
               })
             );
+          }}
+        />
+      )}
+
+      {/* Instagram-style Story Viewer from Profile */}
+      {showStoryViewer && userStories && (
+        <StoryViewerModal
+          groups={[userStories]}
+          initialGroupIndex={0}
+          initialStoryIndex={0}
+          currentUserId={user?.uid}
+          currentUsername={currentUsername}
+          currentUserAvatar={userAvatar}
+          language={language}
+          onClose={() => {
+            setShowStoryViewer(false);
+            void refreshUserStories();
+          }}
+          onDeleteStory={async (storyId) => {
+            await deleteStory(user?.uid, storyId);
+            void refreshUserStories();
+          }}
+          onStoryViewed={() => {
+            void refreshUserStories();
           }}
         />
       )}

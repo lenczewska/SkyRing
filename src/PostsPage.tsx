@@ -3,7 +3,7 @@ import type { User } from "firebase/auth";
 import { Link } from "react-router-dom";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "./firebase";
-import type { Post, PostComment, UserSummary } from "./types";
+import type { Post, PostComment, UserStoryGroup, UserSummary } from "./types";
 import {
   getCommunityPosts,
   getFollowingPosts,
@@ -11,11 +11,19 @@ import {
   searchTravelers,
   toggleFollow,
 } from "./lib/friendsService";
+import {
+  deleteStory,
+  getAllStoryGroups,
+  publishStory,
+} from "./lib/storiesService";
 import PostMenu from "./PostMenu";
 import MapView from "./MapView";
 import UserAvatar from "./UserAvatar";
 import HashtagText from "./HashtagText";
 import PostDetailModal from "./PostDetailModal";
+import StoriesBar from "./StoriesBar";
+import StoryViewerModal from "./StoryViewerModal";
+import CreateStoryModal from "./CreateStoryModal";
 
 type PostsPageProps = {
   user: User | null;
@@ -50,6 +58,22 @@ export default function PostsPage({
   const [currentUserAllowComments, setCurrentUserAllowComments] = useState<boolean>(true);
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+
+  // Stories system state
+  const [myStoryGroup, setMyStoryGroup] = useState<UserStoryGroup>({
+    userId: user?.uid || "me",
+    username: username || "you",
+    userAvatar: userAvatar || "",
+    stories: [],
+    hasUnseen: false,
+  });
+  const [otherStoryGroups, setOtherStoryGroups] = useState<UserStoryGroup[]>([]);
+  const [activeStoryViewer, setActiveStoryViewer] = useState<{
+    groups: UserStoryGroup[];
+    initialGroupIndex: number;
+    initialStoryIndex: number;
+  } | null>(null);
+  const [isCreateStoryOpen, setIsCreateStoryOpen] = useState(false);
 
   const copy =
     language === "ru"
@@ -130,6 +154,87 @@ export default function PostsPage({
       fMap[id.toLowerCase()] = true;
     });
     setFollowingMap(fMap);
+  };
+
+  // Load and refresh stories
+  const loadStories = async () => {
+    try {
+      const { myGroup, otherGroups } = await getAllStoryGroups(
+        user?.uid,
+        username,
+        userAvatar,
+      );
+      setMyStoryGroup(myGroup);
+      setOtherStoryGroups(otherGroups);
+    } catch (err) {
+      console.warn("Could not load stories:", err);
+    }
+  };
+
+  useEffect(() => {
+    void loadStories();
+  }, [user?.uid, username, userAvatar]);
+
+  // Only accounts with unseen stories appear in the feed tray (like Instagram)
+  const unseenOtherStoryGroups = otherStoryGroups.filter((g) => g.hasUnseen);
+
+  const handleOpenMyStory = () => {
+    if (myStoryGroup.stories.length === 0) {
+      if (!user) {
+        onRequestAuth?.();
+      } else {
+        setIsCreateStoryOpen(true);
+      }
+      return;
+    }
+    const combinedGroups = [myStoryGroup, ...unseenOtherStoryGroups];
+    setActiveStoryViewer({
+      groups: combinedGroups,
+      initialGroupIndex: 0,
+      initialStoryIndex: 0,
+    });
+  };
+
+  const handleOpenGroup = (index: number) => {
+    const hasMy = myStoryGroup.stories.length > 0;
+    const combinedGroups = hasMy
+      ? [myStoryGroup, ...unseenOtherStoryGroups]
+      : unseenOtherStoryGroups;
+    const targetIndex = hasMy ? index + 1 : index;
+    setActiveStoryViewer({
+      groups: combinedGroups,
+      initialGroupIndex: targetIndex,
+      initialStoryIndex: 0,
+    });
+  };
+
+  const handleAddStory = () => {
+    if (!user) {
+      onRequestAuth?.();
+      return;
+    }
+    setIsCreateStoryOpen(true);
+  };
+
+  const handlePublishStory = async (data: {
+    mediaUrl: string;
+    caption?: string;
+    location?: string;
+  }) => {
+    await publishStory({
+      userId: user?.uid,
+      username: username || "you",
+      userAvatar: userAvatar,
+      mediaUrl: data.mediaUrl,
+      caption: data.caption,
+      location: data.location,
+    });
+    await loadStories();
+  };
+
+  const handleDeleteStory = async (storyId: string) => {
+    await deleteStory(user?.uid, storyId);
+    await loadStories();
   };
 
   // Load posts based on user / feeds
@@ -440,6 +545,16 @@ export default function PostsPage({
       </p>
       <h1>{copy.title}</h1>
       <p className="subpage-intro">{copy.intro}</p>
+
+      {/* Stories Tray Bar */}
+      <StoriesBar
+        myGroup={myStoryGroup}
+        otherGroups={unseenOtherStoryGroups}
+        language={language}
+        onOpenMyStory={handleOpenMyStory}
+        onOpenGroup={handleOpenGroup}
+        onAddStory={handleAddStory}
+      />
 
       {!user ? (
         <div className="guest-posts-wrapper">
@@ -972,6 +1087,39 @@ export default function PostsPage({
               void handleAddComment(p);
             }
           }}
+        />
+      )}
+
+      {/* Instagram-style Fullscreen Stories Viewer */}
+      {activeStoryViewer && (
+        <StoryViewerModal
+          groups={activeStoryViewer.groups}
+          initialGroupIndex={activeStoryViewer.initialGroupIndex}
+          initialStoryIndex={activeStoryViewer.initialStoryIndex}
+          currentUserId={user?.uid}
+          currentUsername={username}
+          currentUserAvatar={userAvatar}
+          language={language}
+          onClose={() => {
+            setActiveStoryViewer(null);
+            void loadStories();
+          }}
+          onDeleteStory={handleDeleteStory}
+          onStoryViewed={() => {
+            void loadStories();
+          }}
+        />
+      )}
+
+      {/* Create Story Modal */}
+      {isCreateStoryOpen && (
+        <CreateStoryModal
+          user={user}
+          username={username}
+          userAvatar={userAvatar}
+          language={language}
+          onClose={() => setIsCreateStoryOpen(false)}
+          onStoryCreated={handlePublishStory}
         />
       )}
     </section>
