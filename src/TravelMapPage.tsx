@@ -188,7 +188,9 @@ export default function TravelMapPage({ user, language, onRequestAuth }: TravelM
     const nextPlaces = places.filter((place) => place.id !== placeId)
     setPlaces(nextPlaces)
     if (selectedId === placeId) setSelectedId(null)
-    window.localStorage.setItem('skyring-guest-places', JSON.stringify(nextPlaces))
+    if (!user) {
+      window.localStorage.setItem('skyring-guest-places', JSON.stringify(nextPlaces))
+    }
     if (user) {
       try {
         await setDoc(doc(db, 'users', user.uid), { visitedCountries: nextPlaces }, { merge: true })

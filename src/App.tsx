@@ -159,6 +159,8 @@ function AppShell() {
           window.localStorage.removeItem("skyring-auth-active");
           window.localStorage.removeItem("skyring-cached-username");
           window.localStorage.removeItem("skyring-cached-avatar");
+          window.localStorage.removeItem("skyring-guest-places");
+          window.localStorage.removeItem("skyring-guest-place-details");
         } catch {}
         setUsername("");
         setUserAvatar("");
@@ -203,149 +205,145 @@ function AppShell() {
           </span>
           <span>SkyRing</span>
         </button>
-        <div className="nav-links">
-          <button
-            className="nav-globe-btn"
-            onClick={() => navigate("/map")}
-            type="button"
-            title={common.map}
-            aria-label={common.map}
-          >
-            <svg
-              className="nav-globe-svg"
-              viewBox="0 0 36 36"
-              width="32"
-              height="32"
-              aria-hidden="true"
+        {user && (
+          <div className="nav-links">
+            <button
+              className="nav-globe-btn"
+              onClick={() => navigate("/map")}
+              type="button"
+              title={common.map}
+              aria-label={common.map}
             >
-              <circle className="nav-globe-border-bg" cx="18" cy="18" r="15" />
-              <circle className="nav-globe-border-fill" cx="18" cy="18" r="15" />
-              <g className="nav-globe-icon">
-                <circle cx="18" cy="18" r="8" className="nav-globe-sphere" />
-                <line x1="10" y1="18" x2="26" y2="18" className="nav-globe-line" />
-                <line x1="18" y1="10" x2="18" y2="26" className="nav-globe-line" />
-                <ellipse cx="18" cy="18" rx="4.2" ry="8" className="nav-globe-line" />
-                <path d="M10.8 14.5 C13 16, 23 16, 25.2 14.5" className="nav-globe-line" />
-                <path d="M10.8 21.5 C13 20, 23 20, 25.2 21.5" className="nav-globe-line" />
-              </g>
-            </svg>
-          </button>
-          {/* Feed / Posts button */}
-          <button
-            className="nav-feed-btn"
-            onClick={() => navigate("/posts")}
-            type="button"
-            title={language === "ru" ? "Лента путешествий" : "Travel Feed"}
-            aria-label={language === "ru" ? "Лента путешествий" : "Travel Feed"}
-          >
-            <svg
-              className="nav-feed-svg"
-              viewBox="0 0 36 36"
-              width="32"
-              height="32"
-              aria-hidden="true"
+              <svg
+                className="nav-globe-svg"
+                viewBox="0 0 36 36"
+                width="32"
+                height="32"
+                aria-hidden="true"
+              >
+                <circle className="nav-globe-border-bg" cx="18" cy="18" r="15" />
+                <circle className="nav-globe-border-fill" cx="18" cy="18" r="15" />
+                <g className="nav-globe-icon">
+                  <circle cx="18" cy="18" r="8" className="nav-globe-sphere" />
+                  <line x1="10" y1="18" x2="26" y2="18" className="nav-globe-line" />
+                  <line x1="18" y1="10" x2="18" y2="26" className="nav-globe-line" />
+                  <ellipse cx="18" cy="18" rx="4.2" ry="8" className="nav-globe-line" />
+                  <path d="M10.8 14.5 C13 16, 23 16, 25.2 14.5" className="nav-globe-line" />
+                  <path d="M10.8 21.5 C13 20, 23 20, 25.2 21.5" className="nav-globe-line" />
+                </g>
+              </svg>
+            </button>
+            {/* Feed / Posts button */}
+            <button
+              className="nav-feed-btn"
+              onClick={() => navigate("/posts")}
+              type="button"
+              title={language === "ru" ? "Лента путешествий" : "Travel Feed"}
+              aria-label={language === "ru" ? "Лента путешествий" : "Travel Feed"}
             >
-              <circle className="nav-feed-border-bg" cx="18" cy="18" r="15" />
-              <circle className="nav-feed-border-fill" cx="18" cy="18" r="15" />
-              <g className="nav-feed-icon">
-                <rect
-                  x="11.5"
-                  y="11"
-                  width="13"
-                  height="14"
-                  rx="2"
-                  strokeWidth="1.6"
-                  className="nav-feed-rect"
-                />
-                <line
-                  x1="14.5"
-                  y1="15"
-                  x2="21.5"
-                  y2="15"
-                  strokeWidth="1.5"
-                  className="nav-feed-line nav-feed-line-1"
-                />
-                <line
-                  x1="14.5"
-                  y1="18"
-                  x2="21.5"
-                  y2="18"
-                  strokeWidth="1.5"
-                  className="nav-feed-line nav-feed-line-2"
-                />
-                <line
-                  x1="14.5"
-                  y1="21"
-                  x2="18.5"
-                  y2="21"
-                  strokeWidth="1.5"
-                  className="nav-feed-line nav-feed-line-3"
-                />
-              </g>
-            </svg>
-          </button>
-          {/* Create Post button */}
-          <button
-            className="nav-plus-btn"
-            onClick={() => {
-              if (!user) {
-                setAuthMode("register");
-              } else {
-                setIsCreatePostOpen(true);
-              }
-            }}
-            type="button"
-            title={language === "ru" ? "Создать публикацию" : "Create post"}
-            aria-label={language === "ru" ? "Создать публикацию" : "Create post"}
-          >
-            <svg
-              className="nav-plus-svg"
-              viewBox="0 0 36 36"
-              width="32"
-              height="32"
-              aria-hidden="true"
+              <svg
+                className="nav-feed-svg"
+                viewBox="0 0 36 36"
+                width="32"
+                height="32"
+                aria-hidden="true"
+              >
+                <circle className="nav-feed-border-bg" cx="18" cy="18" r="15" />
+                <circle className="nav-feed-border-fill" cx="18" cy="18" r="15" />
+                <g className="nav-feed-icon">
+                  <rect
+                    x="11.5"
+                    y="11"
+                    width="13"
+                    height="14"
+                    rx="2"
+                    strokeWidth="1.6"
+                    className="nav-feed-rect"
+                  />
+                  <line
+                    x1="14.5"
+                    y1="15"
+                    x2="21.5"
+                    y2="15"
+                    strokeWidth="1.5"
+                    className="nav-feed-line nav-feed-line-1"
+                  />
+                  <line
+                    x1="14.5"
+                    y1="18"
+                    x2="21.5"
+                    y2="18"
+                    strokeWidth="1.5"
+                    className="nav-feed-line nav-feed-line-2"
+                  />
+                  <line
+                    x1="14.5"
+                    y1="21"
+                    x2="18.5"
+                    y2="21"
+                    strokeWidth="1.5"
+                    className="nav-feed-line nav-feed-line-3"
+                  />
+                </g>
+              </svg>
+            </button>
+            {/* Create Post button */}
+            <button
+              className="nav-plus-btn"
+              onClick={() => setIsCreatePostOpen(true)}
+              type="button"
+              title={language === "ru" ? "Создать публикацию" : "Create post"}
+              aria-label={language === "ru" ? "Создать публикацию" : "Create post"}
             >
-              <circle className="nav-plus-border-bg" cx="18" cy="18" r="15" />
-              <circle className="nav-plus-border-fill" cx="18" cy="18" r="15" />
-              <path className="nav-plus-cross" d="M18 11 V25 M11 18 H25" />
-            </svg>
-          </button>
-          <button
-            className={`nav-chat-btn ${unreadChatCount > 0 ? "has-unread" : ""}`}
-            onClick={() => navigate("/chat")}
-            type="button"
-            title={language === "ru" ? "Сообщения / Чат" : "Messages / Chat"}
-            aria-label={language === "ru" ? "Сообщения / Чат" : "Messages / Chat"}
-          >
-            <svg
-              className="nav-chat-svg"
-              viewBox="0 0 36 36"
-              width="32"
-              height="32"
-              aria-hidden="true"
+              <svg
+                className="nav-plus-svg"
+                viewBox="0 0 36 36"
+                width="32"
+                height="32"
+                aria-hidden="true"
+              >
+                <circle className="nav-plus-border-bg" cx="18" cy="18" r="15" />
+                <circle className="nav-plus-border-fill" cx="18" cy="18" r="15" />
+                <path className="nav-plus-cross" d="M18 11 V25 M11 18 H25" />
+              </svg>
+            </button>
+            <button
+              className={`nav-chat-btn ${unreadChatCount > 0 ? "has-unread" : ""}`}
+              onClick={() => navigate("/chat")}
+              type="button"
+              title={language === "ru" ? "Сообщения / Чат" : "Messages / Chat"}
+              aria-label={language === "ru" ? "Сообщения / Чат" : "Messages / Chat"}
             >
-              <circle className="nav-chat-border-bg" cx="18" cy="18" r="15" />
-              <circle className="nav-chat-border-fill" cx="18" cy="18" r="15" />
-              <g className="nav-chat-icon-group">
-                <path
-                  d="M12 14c0-1.7 1.3-3 3-3h6c1.7 0 3 1.3 3 3v5c0 1.7-1.3 3-3 3h-2.5L15 24.5V22h-0c-1.7 0-3-1.3-3-3v-5z"
-                  className="nav-chat-icon-path"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-                <circle cx="15.5" cy="16.5" r="1.1" className="nav-chat-dot nav-chat-dot-1" />
-                <circle cx="18.5" cy="16.5" r="1.1" className="nav-chat-dot nav-chat-dot-2" />
-                <circle cx="21.5" cy="16.5" r="1.1" className="nav-chat-dot nav-chat-dot-3" />
-              </g>
-            </svg>
-            {unreadChatCount > 0 && (
-              <span className="nav-chat-badge">{unreadChatCount}</span>
-            )}
-          </button>
-        </div>
+              <svg
+                className="nav-chat-svg"
+                viewBox="0 0 36 36"
+                width="32"
+                height="32"
+                aria-hidden="true"
+              >
+                <circle className="nav-chat-border-bg" cx="18" cy="18" r="15" />
+                <circle className="nav-chat-border-fill" cx="18" cy="18" r="15" />
+                <g className="nav-chat-icon-group">
+                  <path
+                    d="M12 14c0-1.7 1.3-3 3-3h6c1.7 0 3 1.3 3 3v5c0 1.7-1.3 3-3 3h-2.5L15 24.5V22h-0c-1.7 0-3-1.3-3-3v-5z"
+                    className="nav-chat-icon-path"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="15.5" cy="16.5" r="1.1" className="nav-chat-dot nav-chat-dot-1" />
+                  <circle cx="18.5" cy="16.5" r="1.1" className="nav-chat-dot nav-chat-dot-2" />
+                  <circle cx="21.5" cy="16.5" r="1.1" className="nav-chat-dot nav-chat-dot-3" />
+                </g>
+              </svg>
+              {unreadChatCount > 0 && (
+                <span className="nav-chat-badge">{unreadChatCount}</span>
+              )}
+            </button>
+          </div>
+        )}
         <div className="nav-actions">
           {/* Theme Switcher Toggle */}
           <button

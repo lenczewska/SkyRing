@@ -445,6 +445,7 @@ export default function MapView({
 }: MapViewProps) {
   const [internalPlaces, setInternalPlaces] = useState<VisitedPlace[]>(() => {
     if (propPlaces !== undefined) return propPlaces;
+    if (!user && (mode === "globe" || readOnly)) return [];
     try {
       const cached = window.localStorage.getItem("skyring-guest-places");
       if (cached) return normalizePlaces(JSON.parse(cached));
@@ -533,6 +534,11 @@ export default function MapView({
     let active = true;
 
     if (!user) {
+      if (mode === "globe" || readOnly) {
+        setPlaces([]);
+        setLoading(false);
+        return;
+      }
       const local = window.localStorage.getItem("skyring-guest-places");
       if (local) {
         try {
@@ -648,13 +654,15 @@ export default function MapView({
     setPlaces(nextPlaces);
     onPlacesChangeRef.current?.(nextPlaces);
 
-    try {
-      window.localStorage.setItem(
-        "skyring-guest-places",
-        JSON.stringify(nextPlaces),
-      );
-    } catch {
-      // ignore
+    if (!user) {
+      try {
+        window.localStorage.setItem(
+          "skyring-guest-places",
+          JSON.stringify(nextPlaces),
+        );
+      } catch {
+        // ignore
+      }
     }
 
     if (user) {
@@ -707,13 +715,15 @@ export default function MapView({
     setSearchResults([]);
     setSearch("");
 
-    try {
-      window.localStorage.setItem(
-        "skyring-guest-places",
-        JSON.stringify(nextPlaces),
-      );
-    } catch {
-      // ignore
+    if (!user) {
+      try {
+        window.localStorage.setItem(
+          "skyring-guest-places",
+          JSON.stringify(nextPlaces),
+        );
+      } catch {
+        // ignore
+      }
     }
 
     if (user) {
