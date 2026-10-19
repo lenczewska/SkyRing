@@ -29,9 +29,22 @@ import type { AuthMode } from "./types";
 function AppShell() {
   const { language, setLanguage, common, home } = useI18n();
   const { theme, toggleTheme } = useTheme();
+  const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
-  const [username, setUsername] = useState("");
-  const [userAvatar, setUserAvatar] = useState("");
+  const [username, setUsername] = useState(() => {
+    try {
+      return window.localStorage.getItem("skyring-cached-username") || "";
+    } catch {
+      return "";
+    }
+  });
+  const [userAvatar, setUserAvatar] = useState(() => {
+    try {
+      return window.localStorage.getItem("skyring-cached-avatar") || "";
+    } catch {
+      return "";
+    }
+  });
   const [authMode, setAuthMode] = useState<AuthMode | null>(null);
   const [onboardingUser, setOnboardingUser] = useState<{
     uid: string;
@@ -60,18 +73,28 @@ function AppShell() {
   useEffect(() => {
     let unsubscribeDoc: (() => void) | null = null;
 
+    const safetyTimer = setTimeout(() => {
+      setAuthLoading(false);
+    }, 3500);
+
     const unsubscribeAuth = onAuthStateChanged(auth, (nextUser) => {
+      clearTimeout(safetyTimer);
       setUser(nextUser);
+      setAuthLoading(false);
       if (unsubscribeDoc) {
         unsubscribeDoc();
         unsubscribeDoc = null;
       }
 
       if (nextUser) {
+        try {
+          window.localStorage.setItem("skyring-auth-active", "1");
+        } catch {}
+
         // Fast instant fallback from localStorage / displayName
-        const localCached = window.localStorage.getItem(
-          `skyring-uname-${nextUser.uid}`,
-        );
+        const localCached =
+          window.localStorage.getItem(`skyring-uname-${nextUser.uid}`) ||
+          window.localStorage.getItem("skyring-cached-username");
         const fallback =
           localCached ||
           nextUser.displayName ||
@@ -79,6 +102,9 @@ function AppShell() {
           "";
         if (fallback) {
           setUsername(fallback);
+          try {
+            window.localStorage.setItem("skyring-cached-username", fallback);
+          } catch {}
         }
 
         unsubscribeDoc = onSnapshot(
@@ -98,12 +124,22 @@ function AppShell() {
                     `skyring-uname-${nextUser.uid}`,
                     uname,
                   );
+                  window.localStorage.setItem(
+                    "skyring-cached-username",
+                    uname,
+                  );
                 } catch {
                   // ignore
                 }
               }
               if (uData?.avatar !== undefined) {
                 setUserAvatar(uData.avatar || "");
+                try {
+                  window.localStorage.setItem(
+                    "skyring-cached-avatar",
+                    uData.avatar || "",
+                  );
+                } catch {}
               }
 
               const hasLocal = window.localStorage.getItem(
@@ -119,16 +155,37 @@ function AppShell() {
           },
         );
       } else {
+        try {
+          window.localStorage.removeItem("skyring-auth-active");
+          window.localStorage.removeItem("skyring-cached-username");
+          window.localStorage.removeItem("skyring-cached-avatar");
+        } catch {}
         setUsername("");
         setUserAvatar("");
       }
     });
 
     return () => {
+      clearTimeout(safetyTimer);
       unsubscribeAuth();
       if (unsubscribeDoc) unsubscribeDoc();
     };
   }, []);
+
+  if (authLoading) {
+    return (
+      <main className="site-shell app-init-loader-screen">
+        <div className="app-init-loader-center">
+          <div className="brand-mark app-init-loader-logo" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </div>
+          <span className="app-init-loader-text">SkyRing</span>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="site-shell">
@@ -366,16 +423,6 @@ function AppShell() {
                     type="button"
                   >
                     {common.profile}
-                  </button>
-                  <button
-                    className="nav-button"
-                    onClick={() => {
-                      navigate("/chat");
-                      setProfileMenu(false);
-                    }}
-                    type="button"
-                  >
-                    {common.chat}
                   </button>
                   <button
                     className="nav-button menu-logout"

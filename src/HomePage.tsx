@@ -1,16 +1,6 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import type { User } from "firebase/auth";
 import GlobeView from "./GlobeView";
-import type { Post, UserSummary } from "./types";
-import {
-  getFollowingPosts,
-  getLocalFollowing,
-  searchTravelers,
-  toggleFollow,
-} from "./lib/friendsService";
-import UserAvatar from "./UserAvatar";
-import HashtagText from "./HashtagText";
 
 type Copy = {
   eyebrow: string;
@@ -55,61 +45,6 @@ export default function HomePage({
   onOpenMap,
 }: HomePageProps) {
   const navigate = useNavigate();
-  const [friendsPosts, setFriendsPosts] = useState<Post[]>([]);
-  const [suggestedTravelers, setSuggestedTravelers] = useState<UserSummary[]>([]);
-  const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
-
-  useEffect(() => {
-    if (!user) return;
-    let active = true;
-
-    const loadData = async () => {
-      const posts = await getFollowingPosts({
-        uid: user.uid,
-        username: username || "traveller",
-      });
-      if (!active) return;
-      setFriendsPosts(posts);
-
-      const travelers = await searchTravelers("", user.uid, username);
-      if (!active) return;
-      setSuggestedTravelers(travelers.slice(0, 3));
-
-      const followingList = getLocalFollowing(user.uid);
-      const fMap: Record<string, boolean> = {};
-      followingList.forEach((id) => {
-        fMap[id.toLowerCase()] = true;
-      });
-      setFollowingMap(fMap);
-    };
-
-    void loadData();
-
-    return () => {
-      active = false;
-    };
-  }, [user, username]);
-
-  const handleToggleFollow = async (t: UserSummary) => {
-    if (!user) return;
-    const isNow = !followingMap[t.username.toLowerCase()];
-    setFollowingMap((prev) => ({
-      ...prev,
-      [t.username.toLowerCase()]: isNow,
-      [t.uid.toLowerCase()]: isNow,
-    }));
-
-    await toggleFollow(
-      { uid: user.uid, username: username || "traveller" },
-      { uid: t.uid, username: t.username },
-    );
-
-    const posts = await getFollowingPosts({
-      uid: user.uid,
-      username: username || "traveller",
-    });
-    setFriendsPosts(posts);
-  };
 
   if (user) {
     const greeting =
@@ -130,176 +65,47 @@ export default function HomePage({
         : "Your next destination is waiting.";
 
     return (
-      <>
-        <div className="profileView container">
-          <section className="member-welcome">
-            <p className="eyebrow">
-              <span /> {language === "ru" ? "СНОВА В ПУТИ" : "BACK ON THE ROAD"}
-            </p>
-            <h2 className="member-welcome-title">
-              <span className="member-welcome-greeting">{greeting}</span>
-              <br />
-              <em className="member-welcome-highlight">{title}</em>
-            </h2>
+      <div className="profileView container home-member-view">
+        <section className="member-welcome">
+          <p className="eyebrow">
+            <span /> {language === "ru" ? "СНОВА В ПУТИ" : "BACK ON THE ROAD"}
+          </p>
+          <h2 className="member-welcome-title">
+            <span className="member-welcome-greeting">{greeting}</span>
+            <br />
+            <em className="member-welcome-highlight">{title}</em>
+          </h2>
 
-            <p className="hero-description">{description}</p>
-            <div className="member-welcome-actions">
-              <button
-                className="button button-coral nav-button"
-                onClick={onOpenMap ?? onRegister}
-                type="button"
-              >
-                {language === "ru"
-                  ? "Добавить первое место"
-                  : "Add your first place"}{" "}
-                ↗
-              </button>
-              <button
-                className="button button-outline nav-button"
-                onClick={() => navigate("/profile")}
-                type="button"
-              >
-                {language === "ru" ? "Найти друзей" : "Find friends"} ↗
-              </button>
-              <span className="member-welcome-note">{note}</span>
-            </div>
-          </section>
-          <section className="member-globe-wrap">
-            <GlobeView
-              language={language}
-              user={user}
-              onRequestAuth={onRequestAuth}
-            />
-          </section>
-        </div>
-
-        {/* Member Feed / Friends Updates */}
-        <section className="member-feed container">
-          <div className="member-feed-header">
-            <div>
-              <p className="section-label">
-                {language === "ru" ? "ОБНОВЛЕНИЯ ДРУЗЕЙ" : "FRIENDS UPDATES"}
-              </p>
-              <h2>
-                {language === "ru"
-                  ? "Истории людей, которые тоже в пути."
-                  : "Stories from people who are on the road too."}
-              </h2>
-            </div>
-            <Link to="/posts" className="button button-outline view-all-posts-btn">
-              {language === "ru" ? "Вся лента постов" : "View all posts"} ↗
-            </Link>
+          <p className="hero-description">{description}</p>
+          <div className="member-welcome-actions">
+            <button
+              className="button button-coral nav-button"
+              onClick={onOpenMap ?? onRegister}
+              type="button"
+            >
+              {language === "ru"
+                ? "Добавить первое место"
+                : "Add your first place"}{" "}
+              ↗
+            </button>
+            <button
+              className="button button-outline nav-button"
+              onClick={() => navigate("/profile")}
+              type="button"
+            >
+              {language === "ru" ? "Найти друзей" : "Find friends"} ↗
+            </button>
+            <span className="member-welcome-note">{note}</span>
           </div>
-
-          {friendsPosts.length > 0 ? (
-            <div className="home-friends-grid">
-              {friendsPosts.slice(0, 3).map((post) => (
-                <article className="home-friend-card" key={post.id}>
-                  {post.image && (
-                    <div className="home-friend-img-wrap">
-                      <img src={post.image} alt={post.title} />
-                      <span className="home-friend-loc">📍 {post.location}</span>
-                    </div>
-                  )}
-                  <div className="home-friend-content">
-                    <div className="home-friend-author">
-                      <Link
-                        to={`/profile/${post.authorUsername}`}
-                        className="author-avatar-sm-link"
-                      >
-                        <UserAvatar
-                          avatar={post.authorAvatar}
-                          username={post.authorUsername}
-                          size={28}
-                          className="author-avatar-sm"
-                        />
-                      </Link>
-                      <Link
-                        to={`/profile/${post.authorUsername}`}
-                        className="author-name-sm"
-                      >
-                        @{post.authorUsername}
-                      </Link>
-                      <span className="home-friend-date">{post.date}</span>
-                    </div>
-                    <h3><HashtagText text={post.title} /></h3>
-                    <p><HashtagText text={post.description} /></p>
-                    <Link
-                      to="/posts"
-                      className="read-more-link"
-                    >
-                      {language === "ru" ? "Читать историю" : "Read story"} ↗
-                    </Link>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="home-friends-empty">
-              <p>
-                {language === "ru"
-                  ? "Вы пока не подписаны на обновления других путешественников. Подпишитесь на активных исследователей ниже, чтобы видеть их новые маршруты!"
-                  : "You are not following any travelers yet. Follow active explorers below to see their new adventures!"}
-              </p>
-
-              <div className="home-suggested-row">
-                {suggestedTravelers.map((t) => {
-                  const isFollowing =
-                    followingMap[t.username.toLowerCase()] ?? t.isFollowing;
-                  return (
-                    <div className="home-suggested-card" key={t.uid}>
-                      <Link
-                        to={`/profile/${t.username}`}
-                        className="suggested-avatar-link"
-                      >
-                        <UserAvatar
-                          avatar={t.avatar}
-                          username={t.username}
-                          size={36}
-                          className="suggested-avatar"
-                        />
-                      </Link>
-                      <div className="suggested-info">
-                        <Link
-                          to={`/profile/${t.username}`}
-                          className="suggested-username"
-                        >
-                          @{t.username}
-                        </Link>
-                        {t.location && (
-                          <span className="suggested-loc">📍 {t.location}</span>
-                        )}
-                      </div>
-                      <button
-                        className={`follow-toggle-button ${isFollowing ? "following" : "follow"}`}
-                        onClick={() => void handleToggleFollow(t)}
-                        type="button"
-                      >
-                        {isFollowing
-                          ? language === "ru"
-                            ? "В подписках"
-                            : "Following"
-                          : language === "ru"
-                            ? "+ Подписаться"
-                            : "+ Follow"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="home-find-more">
-                <Link to="/profile" className="button button-coral button-small">
-                  {language === "ru"
-                    ? "Поиск всех путешественников в профиле"
-                    : "Find all travelers in profile"}{" "}
-                  ↗
-                </Link>
-              </div>
-            </div>
-          )}
         </section>
-      </>
+        <section className="member-globe-wrap">
+          <GlobeView
+            language={language}
+            user={user}
+            onRequestAuth={onRequestAuth}
+          />
+        </section>
+      </div>
     );
   }
 
