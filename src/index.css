@@ -973,26 +973,26 @@ h2 em {
 }
 .nav-plus-border-bg {
   fill: transparent;
-  stroke: var(--border-strong, rgba(23, 63, 59, 0.28));
-  stroke-width: 1.5;
-  transition: stroke 0.25s ease;
+  stroke: var(--coral, #e76f51);
+  stroke-width: 1.8;
+  transition: fill 0.25s ease, stroke 0.25s ease;
 }
 .nav-plus-border-fill {
   fill: transparent;
   stroke: var(--coral, #e76f51);
   stroke-width: 2;
   stroke-dasharray: 95;
-  stroke-dashoffset: 95;
+  stroke-dashoffset: 0;
   stroke-linecap: round;
   transform-origin: 18px 18px;
   transform: rotate(-90deg);
   transition:
-    stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+    fill 0.25s ease,
     stroke 0.25s ease;
 }
 .nav-plus-cross {
   fill: none;
-  stroke: currentColor;
+  stroke: var(--coral, #e76f51);
   stroke-width: 2.2;
   stroke-linecap: round;
   transform-origin: 18px 18px;
@@ -1002,14 +1002,15 @@ h2 em {
 }
 .nav-plus-btn:hover {
   transform: scale(1.1);
-  background: rgba(231, 111, 81, 0.08);
-  filter: drop-shadow(0 2px 8px rgba(231, 111, 81, 0.35));
+  filter: drop-shadow(0 2px 10px rgba(231, 111, 81, 0.45));
 }
+.nav-plus-btn:hover .nav-plus-border-bg,
 .nav-plus-btn:hover .nav-plus-border-fill {
-  stroke-dashoffset: 0;
+  fill: var(--coral, #e76f51);
+  stroke: var(--coral, #e76f51);
 }
 .nav-plus-btn:hover .nav-plus-cross {
-  stroke: var(--coral, #e76f51);
+  stroke: #ffffff;
   transform: rotate(90deg);
 }
 .nav-plus-btn:active {
@@ -1270,19 +1271,21 @@ h2 em {
   stroke-linecap: round;
   transition: stroke 0.25s ease;
 }
-.nav-search-btn:hover,
-.nav-search-btn.active {
+.nav-search-btn:hover {
   transform: scale(1.1);
   background: rgba(231, 111, 81, 0.08);
   filter: drop-shadow(0 2px 8px rgba(231, 111, 81, 0.35));
 }
-.nav-search-btn:hover .nav-search-border-fill,
-.nav-search-btn.active .nav-search-border-fill {
+.nav-search-btn:hover .nav-search-border-fill {
   stroke-dashoffset: 0;
 }
 .nav-search-btn:hover .nav-search-icon,
-.nav-search-btn.active .nav-search-icon {
+.nav-search-btn:hover .nav-search-circle,
+.nav-search-btn:hover .nav-search-handle {
   stroke: var(--coral, #e76f51);
+  color: var(--coral, #e76f51);
+}
+.nav-search-btn:hover .nav-search-icon {
   transform: rotate(15deg) scale(1.08);
 }
 .nav-search-btn:active {
@@ -1309,8 +1312,7 @@ h2 em {
   user-select: none;
   flex-shrink: 0;
 }
-.nav-mobile-search-btn:hover,
-.nav-mobile-search-btn.active {
+.nav-mobile-search-btn:hover {
   border-color: var(--coral);
   color: var(--coral);
   transform: scale(1.05);

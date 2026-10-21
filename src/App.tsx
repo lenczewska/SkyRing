@@ -6,7 +6,6 @@ import {
   Navigate,
   Route,
   Routes,
-  useLocation,
   useNavigate,
 } from "react-router-dom";
 import "./index.css";
@@ -57,7 +56,6 @@ function AppShell() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Keep track of unread messages count for navbar badge
   useEffect(() => {
@@ -211,6 +209,26 @@ function AppShell() {
         </button>
         {user && (
           <div className="nav-links">
+            {/* Create Post button */}
+            <button
+              className="nav-plus-btn"
+              onClick={() => setIsCreatePostOpen(true)}
+              type="button"
+              title={language === "ru" ? "Создать публикацию" : "Create post"}
+              aria-label={language === "ru" ? "Создать публикацию" : "Create post"}
+            >
+              <svg
+                className="nav-plus-svg"
+                viewBox="0 0 36 36"
+                width="32"
+                height="32"
+                aria-hidden="true"
+              >
+                <circle className="nav-plus-border-bg" cx="18" cy="18" r="15" />
+                <circle className="nav-plus-border-fill" cx="18" cy="18" r="15" />
+                <path className="nav-plus-cross" d="M18 11 V25 M11 18 H25" />
+              </svg>
+            </button>
             <button
               className="nav-globe-btn"
               onClick={() => navigate("/map")}
@@ -239,7 +257,7 @@ function AppShell() {
             </button>
             {/* Search / Explore button */}
             <button
-              className={`nav-search-btn ${location.pathname === "/search" ? "active" : ""}`}
+              className="nav-search-btn"
               onClick={() => navigate("/search")}
               type="button"
               title={language === "ru" ? "Поиск мест, стран и друзей" : "Search places, countries & friends"}
@@ -312,26 +330,6 @@ function AppShell() {
                     className="nav-feed-line nav-feed-line-3"
                   />
                 </g>
-              </svg>
-            </button>
-            {/* Create Post button */}
-            <button
-              className="nav-plus-btn"
-              onClick={() => setIsCreatePostOpen(true)}
-              type="button"
-              title={language === "ru" ? "Создать публикацию" : "Create post"}
-              aria-label={language === "ru" ? "Создать публикацию" : "Create post"}
-            >
-              <svg
-                className="nav-plus-svg"
-                viewBox="0 0 36 36"
-                width="32"
-                height="32"
-                aria-hidden="true"
-              >
-                <circle className="nav-plus-border-bg" cx="18" cy="18" r="15" />
-                <circle className="nav-plus-border-fill" cx="18" cy="18" r="15" />
-                <path className="nav-plus-cross" d="M18 11 V25 M11 18 H25" />
               </svg>
             </button>
             <button
@@ -484,7 +482,7 @@ function AppShell() {
           {/* Mobile Search Button */}
           <button
             type="button"
-            className={`nav-mobile-search-btn ${location.pathname === "/search" ? "active" : ""}`}
+            className="nav-mobile-search-btn"
             onClick={() => navigate("/search")}
             aria-label={language === "ru" ? "Поиск" : "Search"}
             title={language === "ru" ? "Поиск" : "Search"}
