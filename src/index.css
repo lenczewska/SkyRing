@@ -489,7 +489,7 @@ h2 em {
 .hero-description {
   max-width: 520px;
   margin: 18px 0 0;
-  color: #55706b;
+  color: var(--text-secondary);
   font-size: 15px;
   line-height: 1.6;
 }
@@ -732,12 +732,12 @@ h2 em {
   justify-content: space-between;
   align-items: center;
   padding: 24px 0 30px;
-  border-top: 1px solid #d7d9ce;
-  color: #78908a;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
   font-size: 11px;
 }
 .footer .brand {
-  color: #173f3b;
+  color: var(--ink);
   font-size: 17px;
 }
 .footer .brand-mark {
@@ -1433,9 +1433,11 @@ h2 em {
   z-index: 99999;
   display: flex;
   flex-direction: column;
-  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.45);
+  box-shadow: none;
+  visibility: hidden;
+  pointer-events: none;
   transform: translateX(100%);
-  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.32s ease, visibility 0.32s ease;
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: none;
@@ -1449,6 +1451,9 @@ h2 em {
 
 .mobile-sidebar-drawer.open {
   transform: translateX(0);
+  box-shadow: -12px 0 40px rgba(0, 0, 0, 0.45);
+  visibility: visible;
+  pointer-events: auto;
 }
 
 /* Drawer Header */
@@ -1840,7 +1845,7 @@ h2 em {
 .user-email {
   max-width: 150px;
   overflow: hidden;
-  color: #78908a;
+  color: var(--text-muted);
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1852,7 +1857,7 @@ h2 em {
   display: grid;
   place-items: center;
   padding: 20px;
-  background: rgba(23, 63, 59, 0.58);
+  background: var(--modal-overlay);
   backdrop-filter: blur(5px);
 }
 .auth-modal {
@@ -2033,7 +2038,7 @@ h2 em,
   color: white;
 }
 .profile-menu .menu-logout {
-  border-top: 1px solid rgba(23, 63, 59, 0.2);
+  border-top: 1px solid var(--border);
 }
 .profile-page {
   min-height: calc(100vh - 88px);
@@ -2194,14 +2199,14 @@ h2 em,
 }
 .profile-heading > p:not(.eyebrow) {
   margin: 17px 0 0;
-  color: #55706b;
+  color: var(--text-secondary);
   font-size: 14px;
 }
 .profile-stats {
   display: flex;
   gap: 24px;
   margin-top: 24px;
-  color: #55706b;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 .profile-stats strong {
@@ -2279,7 +2284,7 @@ h2 em,
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(23, 63, 59, 0.78);
+  background: var(--modal-overlay);
   backdrop-filter: blur(5px);
 }
 .photo-modal {
@@ -2289,7 +2294,7 @@ h2 em,
   width: min(100%, 900px);
   max-height: min(680px, 90vh);
   overflow: hidden;
-  background: var(--paper);
+  background: var(--surface);
 }
 .photo-modal > img {
   width: 100%;
@@ -2307,14 +2312,14 @@ h2 em,
   line-height: 0.95;
 }
 .photo-details > p:not(.photo-location-detail) {
-  color: #55706b;
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.65;
 }
 .comments {
   margin-top: 38px;
   padding-top: 18px;
-  border-top: 1px solid var(--ink);
+  border-top: 1px solid var(--border);
   font-size: 12px;
 }
 .comments strong {
@@ -2324,7 +2329,7 @@ h2 em,
 }
 .comments p {
   margin: 14px 0 0;
-  color: #55706b;
+  color: var(--text-secondary);
 }
 .photo-close {
   position: absolute;
@@ -2332,7 +2337,7 @@ h2 em,
   top: 13px;
   right: 17px;
   color: var(--ink);
-  background: var(--paper);
+  background: var(--surface);
   font-size: 25px;
 }
 @media (max-width: 800px) {
@@ -2411,14 +2416,14 @@ h2 em,
   outline: none;
 }
 .country.visited {
-  fill: #dcf2df !important;
-  stroke: #387f58 !important;
+  fill: var(--map-visited-fill) !important;
+  stroke: var(--map-visited-stroke) !important;
   stroke-width: 0.85 !important;
   vector-effect: non-scaling-stroke;
 }
 .country.visited:hover {
-  fill: #dcf2df !important;
-  stroke: #387f58 !important;
+  fill: var(--map-visited-fill) !important;
+  stroke: var(--map-visited-stroke) !important;
   vector-effect: non-scaling-stroke;
 }
 .map-place {
@@ -2449,14 +2454,14 @@ h2 em,
   pointer-events: none;
 }
 .map-hover-tooltip .tooltip-box {
-  fill: #173f3b;
-  filter: drop-shadow(0 2px 6px rgba(23, 63, 59, 0.35));
+  fill: var(--ink);
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.25));
 }
 .map-hover-tooltip .tooltip-arrow {
-  fill: #173f3b;
+  fill: var(--ink);
 }
 .map-hover-tooltip .tooltip-text {
-  fill: #f7f4ed;
+  fill: #ffffff;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -2510,7 +2515,7 @@ h2 em,
 }
 .globe-panel .country {
   fill: transparent;
-  stroke: rgba(23, 63, 59, 0.72);
+  stroke: var(--border-strong);
   stroke-width: 0.42;
   cursor: inherit;
   pointer-events: none;
@@ -2518,18 +2523,18 @@ h2 em,
 .globe-panel .country:hover,
 .globe-panel .country:focus {
   fill: transparent !important;
-  stroke: rgba(23, 63, 59, 0.72) !important;
+  stroke: var(--border-strong) !important;
   outline: none;
 }
 .globe-panel .country.visited {
-  fill: #dcf2df !important;
-  stroke: #387f58 !important;
+  fill: var(--map-visited-fill) !important;
+  stroke: var(--map-visited-stroke) !important;
   stroke-width: 0.8 !important;
   pointer-events: none;
 }
 .globe-panel .country.visited:hover {
-  fill: #dcf2df !important;
-  stroke: #387f58 !important;
+  fill: var(--map-visited-fill) !important;
+  stroke: var(--map-visited-stroke) !important;
 }
 .globe-panel .map-place circle {
   fill: var(--coral);
@@ -2590,7 +2595,7 @@ h2 em,
   }
 }
 .globe-panel .globe-ocean {
-  fill: rgba(23, 63, 59, 0.035);
+  fill: var(--map-ocean-fill);
 }
 .map-panel {
   position: relative;
@@ -2621,8 +2626,8 @@ h2 em,
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  color: var(--paper);
-  background: rgba(23, 63, 59, 0.92);
+  color: #ffffff;
+  background: rgba(15, 23, 42, 0.9);
   font-size: 11px;
   font-weight: 700;
 }
@@ -2635,7 +2640,7 @@ h2 em,
   top: 16px;
   left: 16px;
   padding: 7px 10px;
-  color: var(--paper);
+  color: #ffffff;
   background: var(--ink);
   font-size: 11px;
 }
@@ -2645,7 +2650,7 @@ h2 em,
   border: 2px solid var(--paper);
   border-radius: 50%;
   background: var(--coral);
-  box-shadow: 0 2px 8px rgba(23, 63, 59, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
 }
 .visited-marker span {
   display: block;
@@ -2676,7 +2681,7 @@ h2 em,
 .place-search-copy {
   max-width: 280px;
   margin: 18px 0 28px;
-  color: #55706b;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -2728,7 +2733,7 @@ h2 em,
   display: grid;
   gap: 4px;
   padding: 11px 12px;
-  border: 1px solid rgba(23, 63, 59, 0.25);
+  border: 1px solid var(--border);
   color: var(--ink);
   background: transparent;
   cursor: pointer;
@@ -2743,7 +2748,7 @@ h2 em,
 }
 .place-search-result span {
   overflow: hidden;
-  color: #55706b;
+  color: var(--text-secondary);
   font-size: 10px;
   line-height: 1.35;
   text-overflow: ellipsis;
@@ -3028,12 +3033,12 @@ h2 em,
   font-size: 29px;
 }
 .profile-post-card p {
-  color: #55706b;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.55;
 }
 .profile-post-card small {
-  color: #78908a;
+  color: var(--text-muted);
   font-size: 10px;
 }
 @media (max-width: 800px) {
@@ -3061,7 +3066,7 @@ h2 em,
 .subpage-intro {
   max-width: 500px;
   margin: 22px 0 42px;
-  color: #55706b;
+  color: var(--text-secondary);
   font-size: 15px;
   line-height: 1.65;
 }
@@ -3085,7 +3090,7 @@ h2 em,
   gap: 10px;
   min-height: 70px;
   padding: 13px;
-  border: 1px solid rgba(23, 63, 59, 0.25);
+  border: 1px solid var(--border);
   color: var(--ink);
   background: transparent;
   cursor: pointer;
@@ -3112,7 +3117,7 @@ h2 em,
   font-size: 13px;
 }
 .place-list-item small {
-  color: #78908a;
+  color: var(--text-muted);
   font-size: 10px;
 }
 .place-list-dot {
@@ -3136,9 +3141,9 @@ h2 em,
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 1px solid rgba(23, 63, 59, 0.2);
-  background: rgba(255, 255, 255, 0.6);
-  color: #78908a;
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text-muted);
   padding: 0;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -3154,7 +3159,7 @@ h2 em,
   transform: scale(0.95);
 }
 .place-list-arrow {
-  color: #78908a;
+  color: var(--text-muted);
   font-size: 13px;
   line-height: 1;
   transition: transform 0.15s ease, color 0.15s ease;
@@ -3301,10 +3306,10 @@ h2 em,
 .comment-row input {
   width: 100%;
   padding: 12px;
-  border: 1px solid rgba(23, 63, 59, 0.35);
-  border-radius: 2px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
   color: var(--ink);
-  background: var(--paper);
+  background: var(--input-bg);
   font: inherit;
   font-size: 13px;
   outline-color: var(--coral);
@@ -3512,7 +3517,7 @@ h2 em,
   opacity: 1;
 }
 .empty-state {
-  color: #55706b;
+  color: var(--text-muted);
   font-size: 13px;
 }
 @media (max-width: 800px) {
