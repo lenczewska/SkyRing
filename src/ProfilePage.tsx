@@ -13,7 +13,6 @@ import {
 } from "./lib/friendsService";
 import { deleteStory, getStoriesForUser } from "./lib/storiesService";
 import FriendsModal from "./FriendsModal";
-import FriendSearchPanel from "./FriendSearchPanel";
 import PostMenu from "./PostMenu";
 import SettingsModal from "./SettingsModal";
 import UserAvatar from "./UserAvatar";
@@ -745,17 +744,44 @@ export default function ProfilePage({
         )}
       </section>
 
-      {/* Friend Search & Discovery Component (Shown on own profile) */}
+      {/* Search & Discovery Exploration Banner (Shown on own profile) */}
       {isOwnProfile && (
-        <FriendSearchPanel
-          currentUser={
-            user
-              ? { uid: user.uid, username: currentUsername || "traveller" }
-              : null
-          }
-          language={language}
-          onFollowChange={loadProfile}
-        />
+        <section className="profile-search-banner">
+          <div className="profile-search-banner-content">
+            <div className="profile-search-banner-text">
+              <p className="section-label">
+                {language === "ru" ? "ПОИСК И ИССЛЕДОВАНИЕ" : "EXPLORE & SEARCH"}
+              </p>
+              <h3>
+                {language === "ru"
+                  ? "Ищите друзей, новые страны и интересные места"
+                  : "Discover friends, new countries and inspiring destinations"}
+              </h3>
+              <p className="profile-search-banner-sub">
+                {language === "ru"
+                  ? "Находите единомышленников, открывайте интересные маршруты и следите за поездками путешественников."
+                  : "Connect with fellow travelers, track trips, and explore itineraries across the globe."}
+              </p>
+            </div>
+            <Link to="/search" className="button button-coral profile-search-banner-btn">
+              {language === "ru" ? "Перейти в поиск" : "Open Search"} ↗
+            </Link>
+          </div>
+          <div className="profile-search-quick-tags">
+            <span className="profile-search-tag-label">
+              {language === "ru" ? "Искать по категориям:" : "Quick explore:"}
+            </span>
+            <Link to="/search?type=people" className="profile-search-chip">
+              👥 {language === "ru" ? "Люди и друзья" : "People & Friends"}
+            </Link>
+            <Link to="/search?type=countries" className="profile-search-chip">
+              🌍 {language === "ru" ? "Страны мира" : "Countries"}
+            </Link>
+            <Link to="/search?type=places" className="profile-search-chip">
+              📍 {language === "ru" ? "Города и места" : "Cities & Places"}
+            </Link>
+          </div>
+        </section>
       )}
 
 

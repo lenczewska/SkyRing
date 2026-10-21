@@ -56,6 +56,8 @@ export default function MobileSidebar({
           menuTitle: "Меню",
           home: "Главная",
           homeDesc: "Обзор и популярное",
+          search: "Поиск и исследование",
+          searchDesc: "Места, страны и путешественники",
           map: "Карта путешествий",
           mapDesc: "Интерактивная карта и отметки",
           feed: "Лента публикаций",
@@ -81,6 +83,8 @@ export default function MobileSidebar({
           menuTitle: "Menu",
           home: "Home",
           homeDesc: "Explore & highlights",
+          search: "Search & Explore",
+          searchDesc: "Places, countries & travelers",
           map: "Travel Map",
           mapDesc: "Interactive globe & pins",
           feed: "Travel Feed",
@@ -225,6 +229,24 @@ export default function MobileSidebar({
             <div className="mobile-sidebar-item-text">
               <span className="mobile-sidebar-item-title">{copy.home}</span>
               <span className="mobile-sidebar-item-sub">{copy.homeDesc}</span>
+            </div>
+          </button>
+
+          {/* Search & Explore */}
+          <button
+            type="button"
+            className={`mobile-sidebar-nav-item ${currentPath === "/search" ? "active" : ""}`}
+            onClick={() => handleNav("/search")}
+          >
+            <span className="mobile-sidebar-nav-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </span>
+            <div className="mobile-sidebar-item-text">
+              <span className="mobile-sidebar-item-title">{copy.search}</span>
+              <span className="mobile-sidebar-item-sub">{copy.searchDesc}</span>
             </div>
           </button>
 

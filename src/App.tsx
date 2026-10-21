@@ -6,6 +6,7 @@ import {
   Navigate,
   Route,
   Routes,
+  useLocation,
   useNavigate,
 } from "react-router-dom";
 import "./index.css";
@@ -15,6 +16,7 @@ import HomePage from "./HomePage";
 import ProfilePage from "./ProfilePage";
 import TravelMapPage from "./TravelMapPage";
 import PostsPage from "./PostsPage";
+import SearchPage from "./SearchPage";
 import OnboardingModal from "./OnboardingModal";
 import HashtagPage from "./HashtagPage";
 import ChatPage from "./ChatPage";
@@ -55,6 +57,7 @@ function AppShell() {
   const [isCreatePostOpen, setIsCreatePostOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Keep track of unread messages count for navbar badge
   useEffect(() => {
@@ -231,6 +234,29 @@ function AppShell() {
                   <ellipse cx="18" cy="18" rx="4.2" ry="8" className="nav-globe-line" />
                   <path d="M10.8 14.5 C13 16, 23 16, 25.2 14.5" className="nav-globe-line" />
                   <path d="M10.8 21.5 C13 20, 23 20, 25.2 21.5" className="nav-globe-line" />
+                </g>
+              </svg>
+            </button>
+            {/* Search / Explore button */}
+            <button
+              className={`nav-search-btn ${location.pathname === "/search" ? "active" : ""}`}
+              onClick={() => navigate("/search")}
+              type="button"
+              title={language === "ru" ? "Поиск мест, стран и друзей" : "Search places, countries & friends"}
+              aria-label={language === "ru" ? "Поиск" : "Search"}
+            >
+              <svg
+                className="nav-search-svg"
+                viewBox="0 0 36 36"
+                width="32"
+                height="32"
+                aria-hidden="true"
+              >
+                <circle className="nav-search-border-bg" cx="18" cy="18" r="15" />
+                <circle className="nav-search-border-fill" cx="18" cy="18" r="15" />
+                <g className="nav-search-icon">
+                  <circle cx="16" cy="16" r="5.5" className="nav-search-circle" />
+                  <line x1="20" y1="20" x2="24.5" y2="24.5" className="nav-search-handle" />
                 </g>
               </svg>
             </button>
@@ -455,6 +481,29 @@ function AppShell() {
             </button>
           )}
 
+          {/* Mobile Search Button */}
+          <button
+            type="button"
+            className={`nav-mobile-search-btn ${location.pathname === "/search" ? "active" : ""}`}
+            onClick={() => navigate("/search")}
+            aria-label={language === "ru" ? "Поиск" : "Search"}
+            title={language === "ru" ? "Поиск" : "Search"}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </button>
+
           {/* Mobile Hamburger Menu Button */}
           <button
             type="button"
@@ -570,6 +619,17 @@ function AppShell() {
             ) : (
               <Navigate to="/" replace />
             )
+          }
+        />
+        <Route
+          path="/search"
+          element={
+            <SearchPage
+              user={user}
+              username={username}
+              language={language}
+              onRequestAuth={() => setAuthMode("login")}
+            />
           }
         />
         <Route

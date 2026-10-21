@@ -26,6 +26,7 @@ export default function MobileBottomNav({
 
   const isHome = currentPath === "/";
   const isMap = currentPath === "/map";
+  const isSearch = currentPath === "/search";
   const isFeed = currentPath === "/posts";
   const isProfile = currentPath === "/profile" || currentPath.startsWith("/profile/@");
 
@@ -35,6 +36,7 @@ export default function MobileBottomNav({
           navAria: "Мобильная навигация",
           home: "Главная",
           map: "Карта",
+          search: "Поиск",
           create: "Создать публикацию",
           feed: "Лента",
           profile: "Профиль",
@@ -44,6 +46,7 @@ export default function MobileBottomNav({
           navAria: "Mobile navigation",
           home: "Home",
           map: "Map",
+          search: "Search",
           create: "Create post",
           feed: "Feed",
           profile: "Profile",
@@ -104,7 +107,31 @@ export default function MobileBottomNav({
               <span className="mobile-nav-label">{copy.map}</span>
             </Link>
 
-            {/* 3. Center Create Action Button */}
+            {/* 3. Search */}
+            <Link
+              to="/search"
+              className={`mobile-nav-tab ${isSearch ? "active" : ""}`}
+              aria-label={copy.search}
+            >
+              <span className="mobile-nav-icon">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </span>
+              <span className="mobile-nav-label">{copy.search}</span>
+            </Link>
+
+            {/* 4. Center Create Action Button */}
             <button
               type="button"
               className="mobile-nav-create-btn"
@@ -129,7 +156,7 @@ export default function MobileBottomNav({
               </span>
             </button>
 
-            {/* 4. Feed */}
+            {/* 5. Feed */}
             <Link
               to="/posts"
               className={`mobile-nav-tab ${isFeed ? "active" : ""}`}
@@ -155,7 +182,7 @@ export default function MobileBottomNav({
               <span className="mobile-nav-label">{copy.feed}</span>
             </Link>
 
-            {/* 5. Profile */}
+            {/* 6. Profile */}
             <Link
               to="/profile"
               className={`mobile-nav-tab ${isProfile ? "active" : ""}`}
@@ -172,30 +199,56 @@ export default function MobileBottomNav({
             </Link>
           </>
         ) : (
-          /* Login */
-          <button
-            type="button"
-            className="mobile-nav-tab"
-            onClick={onRequestAuth}
-            aria-label={copy.login}
-          >
-            <span className="mobile-nav-icon">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.1"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
-            </span>
-            <span className="mobile-nav-label">{copy.login}</span>
-          </button>
+          <>
+            {/* Search (Guest) */}
+            <Link
+              to="/search"
+              className={`mobile-nav-tab ${isSearch ? "active" : ""}`}
+              aria-label={copy.search}
+            >
+              <span className="mobile-nav-icon">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </span>
+              <span className="mobile-nav-label">{copy.search}</span>
+            </Link>
+
+            {/* Login */}
+            <button
+              type="button"
+              className="mobile-nav-tab"
+              onClick={onRequestAuth}
+              aria-label={copy.login}
+            >
+              <span className="mobile-nav-icon">
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </span>
+              <span className="mobile-nav-label">{copy.login}</span>
+            </button>
+          </>
         )}
       </div>
     </nav>

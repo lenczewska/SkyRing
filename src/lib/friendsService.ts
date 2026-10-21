@@ -151,28 +151,37 @@ export async function searchTravelers(
       if (currentUserUid && uUid === currentUserUid) continue;
       if (currentUsername && uName.toLowerCase() === currentUsername.toLowerCase()) continue;
 
-      if (!q || uName.toLowerCase().includes(q)) {
-        let placesCount = 0;
-        let postsCount = 0;
-        let followers: string[] = [];
-        let following: string[] = [];
-        let bio = "";
-        let location = "";
+      let placesCount = 0;
+      let postsCount = 0;
+      let followers: string[] = [];
+      let following: string[] = [];
+      let bio = "";
+      let location = "";
 
-        try {
-          const uDoc = await getDoc(doc(db, "users", uUid));
-          if (uDoc.exists()) {
-            const uData = uDoc.data();
-            placesCount = uData.visitedCountries?.length ?? 0;
-            postsCount = uData.posts?.length ?? 0;
-            followers = uData.followers ?? [];
-            following = uData.following ?? [];
-            bio = uData.bio ?? "";
-            location = uData.location ?? "";
-          }
-        } catch {
-          // ignore
+      try {
+        const uDoc = await getDoc(doc(db, "users", uUid));
+        if (uDoc.exists()) {
+          const uData = uDoc.data();
+          placesCount = uData.visitedCountries?.length ?? 0;
+          postsCount = uData.posts?.length ?? 0;
+          followers = uData.followers ?? [];
+          following = uData.following ?? [];
+          bio = uData.bio ?? "";
+          location =
+            uData.location ||
+            (uData.city && uData.country
+              ? `${uData.city}, ${uData.country}`
+              : uData.city || uData.country || "");
         }
+      } catch {
+        // ignore
+      }
+
+      const matchName = uName.toLowerCase().includes(q);
+      const matchLocation = location && location.toLowerCase().includes(q);
+      const matchBio = bio && bio.toLowerCase().includes(q);
+
+      if (!q || matchName || matchLocation || matchBio) {
 
         const isFollowing =
           currentFollowing.includes(uUid) || currentFollowing.includes(uName);
