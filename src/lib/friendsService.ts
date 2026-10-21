@@ -10,237 +10,80 @@ import {
 import { db } from "../firebase";
 import type { Post, UserProfile, UserSummary } from "../types";
 
-// Curated active community travelers to provide rich content right away
-export const CURATED_TRAVELERS: UserProfile[] = [
-  {
-    uid: "curated-sophie",
-    username: "sophie_nomad",
-    bio: "Фотограф и путешественник. Ищу тихие уголки мира и утренний кофе с видом на горы. 🌿",
-    avatar: "S",
-    location: "Париж, Франция",
-    followers: ["alex_explorer", "elena_voyage"],
-    following: ["marco_rossi", "elena_voyage"],
-    visitedCountries: [
-      { id: "fr-paris", label: "France, Paris", latitude: 48.8566, longitude: 2.3522, country: "France", city: "Paris", kind: "city" },
-      { id: "it-amalfi", label: "Italy, Amalfi", latitude: 40.634, longitude: 14.6027, country: "Italy", city: "Amalfi", kind: "city" },
-      { id: "jp-kyoto", label: "Japan, Kyoto", latitude: 35.0116, longitude: 135.7681, country: "Japan", city: "Kyoto", kind: "city" },
-      { id: "is-reyk", label: "Iceland, Reykjavik", latitude: 64.1466, longitude: -21.9426, country: "Iceland", city: "Reykjavik", kind: "city" },
-    ],
-    posts: [
-      {
-        id: "curated-post-sophie-1",
-        authorId: "curated-sophie",
-        authorUsername: "sophie_nomad",
-        authorAvatar: "S",
-        title: "Рассвет на Амальфитанском побережье",
-        description: "Когда утренний туман рассеивается над морем, скалы окрашиваются в золотисто-розовый цвет. Мы взяли кофе в старой пекарне и смотрели, как просыпается городок. #italy #amalfi #sea #sunrise",
-        location: "Амальфи, Италия",
-        date: "2026-05-18",
-        image: "https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=900&q=85",
-        likes: ["alex_explorer", "elena_voyage"],
-        comments: [
-          {
-            id: "c-s-1",
-            authorUsername: "alex_explorer",
-            text: "Невероятный свет! В какое время лучше всего туда ехать?",
-            createdAt: "2026-05-18T10:30:00Z",
-          },
-          {
-            id: "c-s-2",
-            authorUsername: "sophie_nomad",
-            text: "Лучше всего май или сентябрь — туристов меньше, а море тёплое! #amalfi",
-            createdAt: "2026-05-18T11:15:00Z",
-          },
-        ],
-        createdAt: "2026-05-18T08:00:00Z",
-      },
-      {
-        id: "curated-post-sophie-2",
-        authorId: "curated-sophie",
-        authorUsername: "sophie_nomad",
-        authorAvatar: "S",
-        title: "Бамбуковый лес Арасияма в Киото",
-        description: "Звук покачивающихся бамбуковых стеблей на ветру признан одним из «100 звуковых ландшафтов Японии». Настоящее место для медитации и размышлений. #japan #kyoto #nature",
-        location: "Киото, Япония",
-        date: "2026-04-12",
-        image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=900&q=85",
-        likes: ["marco_rossi"],
-        comments: [
-          {
-            id: "c-s-3",
-            authorUsername: "elena_voyage",
-            text: "Моя давняя мечта побывать там весной!",
-            createdAt: "2026-04-12T14:00:00Z",
-          },
-        ],
-        createdAt: "2026-04-12T09:30:00Z",
-      },
-    ],
-  },
-  {
-    uid: "curated-marco",
-    username: "marco_rossi",
-    bio: "Архитектор и исследователь старинных городов. В поиске скрытых двориков и древних историй.",
-    avatar: "M",
-    location: "Рим, Италия",
-    followers: ["sophie_nomad"],
-    following: ["alex_explorer"],
-    visitedCountries: [
-      { id: "it-rome", label: "Italy, Rome", latitude: 41.9028, longitude: 12.4964, country: "Italy", city: "Rome", kind: "city" },
-      { id: "es-barcelona", label: "Spain, Barcelona", latitude: 41.3851, longitude: 2.1734, country: "Spain", city: "Barcelona", kind: "city" },
-      { id: "ch-zermatt", label: "Switzerland, Zermatt", latitude: 45.9765, longitude: 7.7491, country: "Switzerland", city: "Zermatt", kind: "city" },
-      { id: "gr-santorini", label: "Greece, Santorini", latitude: 36.3932, longitude: 25.4615, country: "Greece", city: "Santorini", kind: "city" },
-    ],
-    posts: [
-      {
-        id: "curated-post-marco-rome",
-        authorId: "curated-marco",
-        authorUsername: "marco_rossi",
-        authorAvatar: "M",
-        title: "Вечерний Рим и Колизей на закате",
-        description: "Вечерний Вечный город дышит историей. Самое лучшее время для прогулок по Трастевере и древним форумам — когда спадает дневная жара и зажигаются золотые огни. #italy #roma #rome #history #architecture",
-        location: "Рим, Италия",
-        date: "2026-06-14",
-        image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=900&q=85",
-        likes: ["sophie_nomad", "alex_explorer", "elena_voyage"],
-        comments: [
-          {
-            id: "c-m-rome-1",
-            authorUsername: "sophie_nomad",
-            text: "Рим в закатном солнце невероятен! Обожаю этот город.",
-            createdAt: "2026-06-14T20:30:00Z",
-          },
-        ],
-        createdAt: "2026-06-14T18:45:00Z",
-      },
-      {
-        id: "curated-post-marco-1",
-        authorId: "curated-marco",
-        authorUsername: "marco_rossi",
-        authorAvatar: "M",
-        title: "Озеро Блед на рассвете",
-        description: "Островок с колокольней посреди зеркальной глади озера. Туман медленно сползает с Юлийских Альп, создавая сказочную атмосферу. #mountains #lake #adventure #nature",
-        location: "Блед, Словения",
-        date: "2026-06-02",
-        image: "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=900&q=85",
-        likes: ["sophie_nomad", "alex_explorer"],
-        comments: [
-          {
-            id: "c-m-1",
-            authorUsername: "sophie_nomad",
-            text: "Волшебное отражение! Брали лодку напрокат?",
-            createdAt: "2026-06-02T16:20:00Z",
-          },
-        ],
-        createdAt: "2026-06-02T07:10:00Z",
-      },
-    ],
-  },
-  {
-    uid: "curated-elena",
-    username: "elena_voyage",
-    bio: "Путешествую с рюкзаком по всему миру. Горы, фьорды, национальные парки и северные огни 🌌",
-    avatar: "E",
-    location: "Алматы, Казахстан",
-    followers: ["sophie_nomad"],
-    following: ["sophie_nomad", "marco_rossi"],
-    visitedCountries: [
-      { id: "ru-baikal", label: "Russia, Baikal", latitude: 53.5, longitude: 108.0, country: "Russia", city: "Baikal", kind: "city" },
-      { id: "no-tromso", label: "Norway, Tromso", latitude: 69.6492, longitude: 18.9553, country: "Norway", city: "Tromso", kind: "city" },
-      { id: "tr-cappa", label: "Turkey, Cappadocia", latitude: 38.6431, longitude: 34.8289, country: "Turkey", city: "Cappadocia", kind: "city" },
-      { id: "kz-almaty", label: "Kazakhstan, Almaty", latitude: 43.222, longitude: 76.8512, country: "Kazakhstan", city: "Almaty", kind: "city" },
-    ],
-    posts: [
-      {
-        id: "curated-post-elena-1",
-        authorId: "curated-elena",
-        authorUsername: "elena_voyage",
-        authorAvatar: "E",
-        title: "Полет над долиной Каппадокии",
-        description: "Сотни воздушных шаров взмывают над причудливыми скальными долинами на восходе солнца. Невероятный простор и ощущение свободы. #adventure #cappadocia #nature",
-        location: "Каппадокия, Турция",
-        date: "2026-05-25",
-        image: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=85",
-        likes: ["sophie_nomad"],
-        comments: [],
-        createdAt: "2026-05-25T06:45:00Z",
-      },
-    ],
-  },
-  {
-    uid: "curated-alex",
-    username: "alex_explorer",
-    bio: "Походные маршруты, кемпинг и пейзажи. Карта — это мой холст.",
-    avatar: "A",
-    location: "Ванкувер, Канада",
-    followers: ["marco_rossi", "sophie_nomad"],
-    following: ["sophie_nomad"],
-    visitedCountries: [
-      { id: "ca-vanc", label: "Canada, Vancouver", latitude: 49.2827, longitude: -123.1207, country: "Canada", city: "Vancouver", kind: "city" },
-      { id: "us-yosemite", label: "USA, Yosemite", latitude: 37.8651, longitude: -119.5383, country: "United States of America", city: "Yosemite", kind: "city" },
-      { id: "nz-queenstown", label: "New Zealand, Queenstown", latitude: -45.0312, longitude: 168.6626, country: "New Zealand", city: "Queenstown", kind: "city" },
-    ],
-    posts: [
-      {
-        id: "curated-post-alex-1",
-        authorId: "curated-alex",
-        authorUsername: "alex_explorer",
-        authorAvatar: "A",
-        title: "Треккинг в Йосемити",
-        description: "Поднялись на вершину скалы к закату. Вид на долину захватывает дух. Тишина, нарушаемая только ветром среди сосен.",
-        location: "Йосемити, США",
-        date: "2026-06-10",
-        image: "https://images.unsplash.com/photo-1426604966848-d7adac402bff?auto=format&fit=crop&w=900&q=85",
-        likes: ["sophie_nomad", "marco_rossi"],
-        comments: [],
-        createdAt: "2026-06-10T19:20:00Z",
-      },
-    ],
-  },
+export const FAKE_USERNAMES = [
+  "sophie_nomad",
+  "marco_rossi",
+  "elena_voyage",
+  "alex_explorer",
 ];
+
+// Curated active community travelers - empty to ensure only real users are shown
+export const CURATED_TRAVELERS: UserProfile[] = [];
 
 // Helper to get local cached following list for instant feedback
 export function getLocalFollowing(uid?: string | null): string[] {
-  if (!uid) {
-    try {
-      const guest = window.localStorage.getItem("skyring-guest-following");
-      return guest ? JSON.parse(guest) : [];
-    } catch {
-      return [];
-    }
-  }
+  const key = uid ? `skyring-following-${uid}` : "skyring-guest-following";
   try {
-    const saved = window.localStorage.getItem(`skyring-following-${uid}`);
-    return saved ? JSON.parse(saved) : [];
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    const cleaned = parsed.filter(
+      (id) =>
+        typeof id === "string" &&
+        !id.startsWith("curated-") &&
+        !FAKE_USERNAMES.includes(id.toLowerCase().replace(/^@/, "")),
+    );
+    if (cleaned.length !== parsed.length) {
+      window.localStorage.setItem(key, JSON.stringify(cleaned));
+    }
+    return cleaned;
   } catch {
     return [];
   }
 }
 
+// Count unique followed individuals (preventing duplicate counts when both uid and username are stored)
+export function countUniqueFollowing(list?: string[] | null): number {
+  if (!list || !Array.isArray(list)) return 0;
+  const uniqueUsers = new Set<string>();
+
+  for (const item of list) {
+    if (!item || typeof item !== "string") continue;
+    const clean = item.trim().toLowerCase().replace(/^@/, "");
+    if (!clean || FAKE_USERNAMES.includes(clean) || clean.startsWith("curated-")) continue;
+    uniqueUsers.add(clean);
+  }
+
+  return uniqueUsers.size;
+}
+
 export function setLocalFollowing(uid: string | null | undefined, list: string[]): void {
   const key = uid ? `skyring-following-${uid}` : "skyring-guest-following";
+  const cleaned = list.filter(
+    (id) =>
+      typeof id === "string" &&
+      !id.startsWith("curated-") &&
+      !FAKE_USERNAMES.includes(id.toLowerCase().replace(/^@/, "")),
+  );
   try {
-    window.localStorage.setItem(key, JSON.stringify(list));
+    window.localStorage.setItem(key, JSON.stringify(cleaned));
   } catch {
     // ignore
   }
 }
 
-// Fetch user profile from Firestore or Curated travelers
+// Fetch user profile from Firestore
 export async function fetchUserProfile(
   usernameOrUid: string,
   _currentUserUid?: string | null,
 ): Promise<UserProfile | null> {
   const normalized = usernameOrUid.trim().toLowerCase().replace(/^@/, "");
+  if (FAKE_USERNAMES.includes(normalized) || normalized.startsWith("curated-")) {
+    return null;
+  }
 
-  // 1. Check curated accounts first for instant match
-  const curated = CURATED_TRAVELERS.find(
-    (u) =>
-      u.username.toLowerCase() === normalized ||
-      u.uid.toLowerCase() === normalized,
-  );
-
-  // 2. Check Firestore
+  // Check Firestore
   let firestoreUser: UserProfile | null = null;
   try {
     // Check if username mapping exists
@@ -282,11 +125,10 @@ export async function fetchUserProfile(
     console.warn("Could not query Firestore for user profile:", err);
   }
 
-  const profile = firestoreUser || curated || null;
-  return profile;
+  return firestoreUser;
 }
 
-// Search users across Firestore and Curated lists
+// Search real users across Firestore
 export async function searchTravelers(
   searchQuery: string,
   currentUserUid?: string | null,
@@ -297,49 +139,15 @@ export async function searchTravelers(
 
   const resultsMap = new Map<string, UserSummary>();
 
-  // Include curated matches
-  for (const c of CURATED_TRAVELERS) {
-    if (
-      !q ||
-      c.username.toLowerCase().includes(q) ||
-      (c.bio && c.bio.toLowerCase().includes(q)) ||
-      (c.location && c.location.toLowerCase().includes(q))
-    ) {
-      if (currentUserUid && c.uid === currentUserUid) continue;
-      if (currentUsername && c.username.toLowerCase() === currentUsername.toLowerCase()) continue;
-
-      const isFollowing =
-        currentFollowing.includes(c.uid) || currentFollowing.includes(c.username);
-      const isFollower = currentUserUid
-        ? (c.following ?? []).includes(currentUserUid) ||
-          (currentUsername ? (c.following ?? []).includes(currentUsername) : false)
-        : false;
-
-      resultsMap.set(c.username.toLowerCase(), {
-        uid: c.uid,
-        username: c.username,
-        bio: c.bio,
-        avatar: c.avatar,
-        location: c.location,
-        postsCount: c.posts?.length ?? 0,
-        placesCount: c.visitedCountries?.length ?? 0,
-        followersCount: (c.followers?.length ?? 0) + (isFollowing ? 1 : 0),
-        followingCount: c.following?.length ?? 0,
-        isFollowing,
-        isFollower,
-        isMutual: isFollowing && isFollower,
-      });
-    }
-  }
-
-  // Include Firestore users
+  // Include only real Firestore users
   try {
-    const usernamesSnap = await getDocs(query(collection(db, "usernames"), limit(20)));
+    const usernamesSnap = await getDocs(query(collection(db, "usernames"), limit(25)));
     for (const snap of usernamesSnap.docs) {
       const data = snap.data();
       const uName = (data.username as string) || snap.id;
       const uUid = data.uid as string;
 
+      if (FAKE_USERNAMES.includes(uName.toLowerCase()) || uUid.startsWith("curated-")) continue;
       if (currentUserUid && uUid === currentUserUid) continue;
       if (currentUsername && uName.toLowerCase() === currentUsername.toLowerCase()) continue;
 
@@ -381,8 +189,8 @@ export async function searchTravelers(
           location,
           postsCount,
           placesCount,
-          followersCount: followers.length + (isFollowing && !followers.includes(currentUserUid ?? "") ? 1 : 0),
-          followingCount: following.length,
+          followersCount: countUniqueFollowing(followers) + (isFollowing && !followers.includes(currentUserUid ?? "") ? 1 : 0),
+          followingCount: countUniqueFollowing(following),
           isFollowing,
           isFollower,
           isMutual: isFollowing && isFollower,
@@ -447,7 +255,7 @@ export async function toggleFollow(
       );
 
       // 2. Update target user's followers list in Firestore (if real user)
-      if (!targetUser.uid.startsWith("curated-")) {
+      if (!targetUser.uid.startsWith("curated-") && !FAKE_USERNAMES.includes(targetUser.username.toLowerCase())) {
         const targetSnap = await getDoc(doc(db, "users", targetUser.uid));
         if (targetSnap.exists()) {
           const existingFollowers =
@@ -490,26 +298,11 @@ export async function getFollowingPosts(
   const followingList = getLocalFollowing(currentUser?.uid);
   const posts: Post[] = [];
 
-  // 1. Curated accounts that are followed
-  for (const curated of CURATED_TRAVELERS) {
-    const isFollowed =
-      followingList.includes(curated.uid) ||
-      followingList.includes(curated.username.toLowerCase());
-    if (isFollowed && curated.posts) {
-      for (const p of curated.posts) {
-        if (p.isArchived) continue;
-        posts.push({
-          ...p,
-          authorUsername: curated.username,
-          authorAvatar: curated.avatar,
-        });
-      }
-    }
-  }
-
-  // 2. Firestore accounts that are followed
+  // Firestore accounts that are followed
   if (currentUser?.uid && followingList.length > 0) {
-    const uidsToFetch = followingList.filter((id) => !id.startsWith("curated-") && !id.includes("_") && id.length > 15);
+    const uidsToFetch = followingList.filter(
+      (id) => !id.startsWith("curated-") && !FAKE_USERNAMES.includes(id.toLowerCase()),
+    );
     for (const uUid of uidsToFetch) {
       try {
         const uSnap = await getDoc(doc(db, "users", uUid));
@@ -544,31 +337,19 @@ export async function getFollowingPosts(
   });
 }
 
-// Fetch all community posts for Discover feed
+// Fetch all community posts for Discover feed from real Firestore users
 export async function getCommunityPosts(
   _currentUser?: { uid: string; username: string } | null,
 ): Promise<Post[]> {
   const posts: Post[] = [];
 
-  // Add curated posts
-  for (const curated of CURATED_TRAVELERS) {
-    if (curated.posts) {
-      for (const p of curated.posts) {
-        if (p.isArchived) continue;
-        posts.push({
-          ...p,
-          authorUsername: curated.username,
-          authorAvatar: curated.avatar,
-        });
-      }
-    }
-  }
-
   // Add Firestore recent users' posts
   try {
-    const usersSnap = await getDocs(query(collection(db, "users"), limit(10)));
+    const usersSnap = await getDocs(query(collection(db, "users"), limit(25)));
     for (const docSnap of usersSnap.docs) {
+      if (docSnap.id.startsWith("curated-")) continue;
       const uData = docSnap.data();
+      if (FAKE_USERNAMES.includes((uData.username || "").toLowerCase())) continue;
       const userPosts = (uData.posts as Post[]) ?? [];
       for (const p of userPosts) {
         if (p.isArchived) continue;

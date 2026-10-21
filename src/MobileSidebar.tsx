@@ -140,8 +140,8 @@ export default function MobileSidebar({
             type="button"
             className="mobile-sidebar-close-btn"
             onClick={onClose}
-            aria-label="Close menu"
-            title="Закрыть меню"
+            aria-label={language === "ru" ? "Закрыть меню" : "Close menu"}
+            title={language === "ru" ? "Закрыть меню" : "Close menu"}
           >
             <svg
               width="20"
@@ -228,87 +228,89 @@ export default function MobileSidebar({
             </div>
           </button>
 
-          {/* Map */}
-          <button
-            type="button"
-            className={`mobile-sidebar-nav-item ${currentPath === "/map" ? "active" : ""}`}
-            onClick={() => handleNav("/map")}
-          >
-            <span className="mobile-sidebar-nav-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="2" y1="12" x2="22" y2="12" />
-                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-              </svg>
-            </span>
-            <div className="mobile-sidebar-item-text">
-              <span className="mobile-sidebar-item-title">{copy.map}</span>
-              <span className="mobile-sidebar-item-sub">{copy.mapDesc}</span>
-            </div>
-          </button>
-
-          {/* Feed / Posts */}
-          <button
-            type="button"
-            className={`mobile-sidebar-nav-item ${currentPath === "/posts" ? "active" : ""}`}
-            onClick={() => handleNav("/posts")}
-          >
-            <span className="mobile-sidebar-nav-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" />
-                <line x1="7" y1="8" x2="17" y2="8" />
-                <line x1="7" y1="12" x2="17" y2="12" />
-                <line x1="7" y1="16" x2="13" y2="16" />
-              </svg>
-            </span>
-            <div className="mobile-sidebar-item-text">
-              <span className="mobile-sidebar-item-title">{copy.feed}</span>
-              <span className="mobile-sidebar-item-sub">{copy.feedDesc}</span>
-            </div>
-          </button>
-
-          {/* Chat / Messages */}
-          <button
-            type="button"
-            className={`mobile-sidebar-nav-item ${currentPath.startsWith("/chat") ? "active" : ""}`}
-            onClick={() => handleNav("/chat")}
-          >
-            <span className="mobile-sidebar-nav-icon">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </span>
-            <div className="mobile-sidebar-item-text">
-              <div className="mobile-sidebar-item-title-row">
-                <span className="mobile-sidebar-item-title">{copy.chat}</span>
-                {unreadChatCount > 0 && (
-                  <span className="mobile-sidebar-unread-pill">
-                    {unreadChatCount} {copy.unread}
-                  </span>
-                )}
-              </div>
-              <span className="mobile-sidebar-item-sub">{copy.chatDesc}</span>
-            </div>
-          </button>
-
-          {/* Profile (if logged in) */}
           {user && (
-            <button
-              type="button"
-              className={`mobile-sidebar-nav-item ${currentPath === "/profile" ? "active" : ""}`}
-              onClick={() => handleNav("/profile")}
-            >
-              <span className="mobile-sidebar-nav-icon">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              </span>
-              <div className="mobile-sidebar-item-text">
-                <span className="mobile-sidebar-item-title">{copy.profile}</span>
-                <span className="mobile-sidebar-item-sub">{copy.profileDesc}</span>
-              </div>
-            </button>
+            <>
+              {/* Map */}
+              <button
+                type="button"
+                className={`mobile-sidebar-nav-item ${currentPath === "/map" ? "active" : ""}`}
+                onClick={() => handleNav("/map")}
+              >
+                <span className="mobile-sidebar-nav-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="2" y1="12" x2="22" y2="12" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                </span>
+                <div className="mobile-sidebar-item-text">
+                  <span className="mobile-sidebar-item-title">{copy.map}</span>
+                  <span className="mobile-sidebar-item-sub">{copy.mapDesc}</span>
+                </div>
+              </button>
+
+              {/* Feed / Posts */}
+              <button
+                type="button"
+                className={`mobile-sidebar-nav-item ${currentPath === "/posts" ? "active" : ""}`}
+                onClick={() => handleNav("/posts")}
+              >
+                <span className="mobile-sidebar-nav-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <line x1="7" y1="8" x2="17" y2="8" />
+                    <line x1="7" y1="12" x2="17" y2="12" />
+                    <line x1="7" y1="16" x2="13" y2="16" />
+                  </svg>
+                </span>
+                <div className="mobile-sidebar-item-text">
+                  <span className="mobile-sidebar-item-title">{copy.feed}</span>
+                  <span className="mobile-sidebar-item-sub">{copy.feedDesc}</span>
+                </div>
+              </button>
+
+              {/* Chat / Messages */}
+              <button
+                type="button"
+                className={`mobile-sidebar-nav-item ${currentPath.startsWith("/chat") ? "active" : ""}`}
+                onClick={() => handleNav("/chat")}
+              >
+                <span className="mobile-sidebar-nav-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                  </svg>
+                </span>
+                <div className="mobile-sidebar-item-text">
+                  <div className="mobile-sidebar-item-title-row">
+                    <span className="mobile-sidebar-item-title">{copy.chat}</span>
+                    {unreadChatCount > 0 && (
+                      <span className="mobile-sidebar-unread-pill">
+                        {unreadChatCount} {copy.unread}
+                      </span>
+                    )}
+                  </div>
+                  <span className="mobile-sidebar-item-sub">{copy.chatDesc}</span>
+                </div>
+              </button>
+
+              {/* Profile */}
+              <button
+                type="button"
+                className={`mobile-sidebar-nav-item ${currentPath === "/profile" ? "active" : ""}`}
+                onClick={() => handleNav("/profile")}
+              >
+                <span className="mobile-sidebar-nav-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </span>
+                <div className="mobile-sidebar-item-text">
+                  <span className="mobile-sidebar-item-title">{copy.profile}</span>
+                  <span className="mobile-sidebar-item-sub">{copy.profileDesc}</span>
+                </div>
+              </button>
+            </>
           )}
         </nav>
 

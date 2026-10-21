@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import type { Post, PostComment } from "./types";
 import UserAvatar from "./UserAvatar";
@@ -12,6 +12,8 @@ type PostDetailModalProps = {
   onClose: () => void;
   onLike?: (postId: string) => void;
   onComment?: (postId: string, text: string) => void;
+  onEditComment?: (postId: string, commentIndex: number, newText: string) => void;
+  onDeleteComment?: (postId: string, commentIndex: number) => void;
 };
 
 /**
@@ -65,11 +67,31 @@ export default function PostDetailModal({
   onClose,
   onLike,
   onComment,
+  onEditComment,
+  onDeleteComment,
 }: PostDetailModalProps) {
   useModalScrollLock();
 
   const [newComment, setNewComment] = useState("");
   const [copied, setCopied] = useState(false);
+  const [commentsList, setCommentsList] = useState<(string | PostComment)[]>(
+    post.comments || []
+  );
+  const [editingCommentIdx, setEditingCommentIdx] = useState<number | null>(null);
+  const [editingCommentText, setEditingCommentText] = useState("");
+  const [activeMenuCommentIdx, setActiveMenuCommentIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    setCommentsList(post.comments || []);
+  }, [post.comments]);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveMenuCommentIdx(null);
+    };
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, []);
 
   const authorName = post.authorUsername || "traveller";
   const { relative: relativeTime, full: fullTime } = formatPostTime(
@@ -86,8 +108,54 @@ export default function PostDetailModal({
   const handleSendComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || !onComment) return;
-    onComment(post.id, newComment.trim());
+    const commentText = newComment.trim();
+    onComment(post.id, commentText);
+    const tempObj: PostComment = {
+      id: `${Date.now()}`,
+      authorUsername: currentUsername || "traveller",
+      text: commentText,
+      createdAt: new Date().toISOString(),
+    };
+    setCommentsList((prev) => [...prev, tempObj]);
     setNewComment("");
+  };
+
+  const handleStartEditComment = (idx: number, currentText: string) => {
+    setEditingCommentIdx(idx);
+    setEditingCommentText(currentText);
+    setActiveMenuCommentIdx(null);
+  };
+
+  const handleSaveEditComment = (idx: number) => {
+    const trimmed = editingCommentText.trim();
+    if (!trimmed) return;
+    const updated = commentsList.map((c, i) => {
+      if (i !== idx) return c;
+      if (typeof c === "object" && c !== null) {
+        return {
+          ...c,
+          text: trimmed,
+          isEdited: true,
+        };
+      }
+      return {
+        id: `${Date.now()}`,
+        authorUsername: currentUsername || "traveller",
+        text: trimmed,
+        createdAt: new Date().toISOString(),
+        isEdited: true,
+      };
+    });
+    setCommentsList(updated);
+    setEditingCommentIdx(null);
+    onEditComment?.(post.id, idx, trimmed);
+  };
+
+  const handleDeleteComment = (idx: number) => {
+    const updated = commentsList.filter((_, i) => i !== idx);
+    setCommentsList(updated);
+    setActiveMenuCommentIdx(null);
+    onDeleteComment?.(post.id, idx);
   };
 
   const handleShare = () => {
@@ -208,21 +276,36 @@ export default function PostDetailModal({
               <div className="post-detail-comments-section">
                 <h4 className="post-detail-comments-title">
                   💬 {language === "ru" ? "Комментарии" : "Comments"} (
-                  {post.comments?.length || 0})
+                  {commentsList.length})
                 </h4>
 
-                {post.comments && post.comments.length > 0 ? (
+                {commentsList.length > 0 ? (
                   <div className="post-detail-comments-list">
-                    {post.comments.map((c, i) => {
+                    {commentsList.map((c, i) => {
                       const isObj = typeof c === "object" && c !== null;
                       const commentAuthor = isObj
                         ? (c as PostComment).authorUsername
                         : "traveller";
                       const commentText = isObj ? (c as PostComment).text : String(c);
+                      const isEdited = isObj ? Boolean((c as PostComment).isEdited) : false;
                       const commentTime = isObj
                         ? formatPostTime((c as PostComment).createdAt, language)
                             .relative
                         : "";
+                      const isEditing = editingCommentIdx === i;
+
+                      const isCommentAuthor =
+                        Boolean(currentUsername) &&
+                        Boolean(commentAuthor) &&
+                        commentAuthor.toLowerCase() === currentUsername.toLowerCase();
+                      const isPostOwner =
+                        Boolean(currentUsername) &&
+                        Boolean(post.authorUsername) &&
+                        post.authorUsername?.toLowerCase() === currentUsername.toLowerCase();
+
+                      const canEdit = isCommentAuthor;
+                      const canDelete = isCommentAuthor || isPostOwner;
+                      const hasActions = canEdit || canDelete;
 
                       return (
                         <div className="post-detail-comment-item" key={i}>
@@ -238,24 +321,120 @@ export default function PostDetailModal({
                               className="comment-avatar"
                             />
                           </Link>
-                          <div className="comment-bubble">
+                          <div className={`comment-bubble ${isEditing ? "is-editing" : ""}`}>
                             <div className="comment-bubble-header">
-                              <Link
-                                to={`/profile/${commentAuthor}`}
-                                onClick={onClose}
-                                className="comment-author-name"
-                              >
-                                @{commentAuthor}
-                              </Link>
-                              {commentTime && (
-                                <span className="comment-time">
-                                  {commentTime}
-                                </span>
+                              <div className="comment-header-left">
+                                <Link
+                                  to={`/profile/${commentAuthor}`}
+                                  onClick={onClose}
+                                  className="comment-author-name"
+                                >
+                                  @{commentAuthor}
+                                </Link>
+                                {commentTime && (
+                                  <span className="comment-time">
+                                    {commentTime}
+                                  </span>
+                                )}
+                                {isEdited && (
+                                  <span className="comment-edited-badge">
+                                    {language === "ru" ? "ред." : "edited"}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* 3-dots action selector */}
+                              {hasActions && !isEditing && (
+                                <div className="comment-actions-wrap">
+                                  <button
+                                    type="button"
+                                    className="comment-action-trigger"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setActiveMenuCommentIdx(
+                                        activeMenuCommentIdx === i ? null : i
+                                      );
+                                    }}
+                                    title={language === "ru" ? "Действия" : "Actions"}
+                                    aria-label="Comment options"
+                                  >
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+                                      <circle cx="12" cy="5" r="2.2" />
+                                      <circle cx="12" cy="12" r="2.2" />
+                                      <circle cx="12" cy="19" r="2.2" />
+                                    </svg>
+                                  </button>
+
+                                  {activeMenuCommentIdx === i && (
+                                    <div
+                                      className="comment-action-dropdown"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {canEdit && (
+                                        <button
+                                          type="button"
+                                          className="comment-action-item"
+                                          onClick={() => handleStartEditComment(i, commentText)}
+                                        >
+                                          <span className="action-icon">✏️</span>
+                                          <span>{language === "ru" ? "Редактировать" : "Edit"}</span>
+                                        </button>
+                                      )}
+                                      {canDelete && (
+                                        <button
+                                          type="button"
+                                          className="comment-action-item delete"
+                                          onClick={() => handleDeleteComment(i)}
+                                        >
+                                          <span className="action-icon">🗑️</span>
+                                          <span>{language === "ru" ? "Удалить" : "Delete"}</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
-                            <p className="comment-text">
-                              <HashtagText text={commentText} />
-                            </p>
+
+                            {isEditing ? (
+                              <div className="comment-inline-edit-box">
+                                <input
+                                  type="text"
+                                  className="comment-inline-edit-input"
+                                  value={editingCommentText}
+                                  onChange={(e) => setEditingCommentText(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      handleSaveEditComment(i);
+                                    } else if (e.key === "Escape") {
+                                      setEditingCommentIdx(null);
+                                    }
+                                  }}
+                                  autoFocus
+                                />
+                                <div className="comment-inline-edit-actions">
+                                  <button
+                                    type="button"
+                                    className="comment-edit-btn save"
+                                    onClick={() => handleSaveEditComment(i)}
+                                  >
+                                    ✓ {language === "ru" ? "Сохранить" : "Save"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="comment-edit-btn cancel"
+                                    onClick={() => setEditingCommentIdx(null)}
+                                  >
+                                    ✕ {language === "ru" ? "Отмена" : "Cancel"}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="comment-text">
+                                <HashtagText text={commentText} />
+                              </p>
+                            )}
                           </div>
                         </div>
                       );

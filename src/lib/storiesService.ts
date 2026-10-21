@@ -1,251 +1,159 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, limit, query, setDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import type { StoryItem, UserStoryGroup } from "../types";
 
 const SEEN_STORIES_KEY = "skyring-seen-stories";
 const GUEST_STORIES_KEY = "skyring-guest-stories";
 
-// Curated travel stories for platform creators to provide an immediate wow experience
-export const CURATED_STORY_GROUPS: UserStoryGroup[] = [
-  {
-    userId: "curated-sophie",
-    username: "sophie_nomad",
-    userAvatar: "S",
-    stories: [
-      {
-        id: "curated-story-sophie-1",
-        authorId: "curated-sophie",
-        authorUsername: "sophie_nomad",
-        authorAvatar: "S",
-        mediaUrl:
-          "https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=1080&q=85",
-        caption: "Утренний кофе и первый луч солнца над морем ☕️✨",
-        location: "Амальфи, Италия",
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        duration: 5000,
-      },
-      {
-        id: "curated-story-sophie-2",
-        authorId: "curated-sophie",
-        authorUsername: "sophie_nomad",
-        authorAvatar: "S",
-        mediaUrl:
-          "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=1080&q=85",
-        caption: "Шёпот бамбуковой рощи на рассвете 🎋",
-        location: "Киото, Япония",
-        createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-        duration: 5000,
-      },
-    ],
-  },
-  {
-    userId: "curated-marco",
-    username: "marco_rossi",
-    userAvatar: "M",
-    stories: [
-      {
-        id: "curated-story-marco-1",
-        authorId: "curated-marco",
-        authorUsername: "marco_rossi",
-        authorAvatar: "M",
-        mediaUrl:
-          "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=1080&q=85",
-        caption: "Вечный город в лучах заката 🏛️ Завораживает!",
-        location: "Рим, Италия",
-        createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-        duration: 5000,
-      },
-      {
-        id: "curated-story-marco-2",
-        authorId: "curated-marco",
-        authorUsername: "marco_rossi",
-        authorAvatar: "M",
-        mediaUrl:
-          "https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=1080&q=85",
-        caption: "Туманное зеркало озера Блед 🏔️",
-        location: "Блед, Словения",
-        createdAt: new Date(Date.now() - 7 * 60 * 60 * 1000).toISOString(),
-        duration: 5000,
-      },
-    ],
-  },
-  {
-    userId: "curated-elena",
-    username: "elena_voyage",
-    userAvatar: "E",
-    stories: [
-      {
-        id: "curated-story-elena-1",
-        authorId: "curated-elena",
-        authorUsername: "elena_voyage",
-        authorAvatar: "E",
-        mediaUrl:
-          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1080&q=85",
-        caption: "Сотни воздушных шаров в утреннем небе! 🎈",
-        location: "Каппадокия, Турция",
-        createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-        duration: 5000,
-      },
-      {
-        id: "curated-story-elena-2",
-        authorId: "curated-elena",
-        authorUsername: "elena_voyage",
-        authorAvatar: "E",
-        mediaUrl:
-          "https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?auto=format&fit=crop&w=1080&q=85",
-        caption: "Фьорды за полярным кругом ❄️ Чистый восторг!",
-        location: "Тромсё, Норвегия",
-        createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-        duration: 5000,
-      },
-    ],
-  },
-  {
-    userId: "curated-alex",
-    username: "alex_explorer",
-    userAvatar: "A",
-    stories: [
-      {
-        id: "curated-story-alex-1",
-        authorId: "curated-alex",
-        authorUsername: "alex_explorer",
-        authorAvatar: "A",
-        mediaUrl:
-          "https://images.unsplash.com/photo-1426604966848-d7adac402bff?auto=format&fit=crop&w=1080&q=85",
-        caption: "На вершине скалы. Дышите глубже 🌲",
-        location: "Йосемити, США",
-        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-        duration: 5000,
-      },
-      {
-        id: "curated-story-alex-2",
-        authorId: "curated-alex",
-        authorUsername: "alex_explorer",
-        authorAvatar: "A",
-        mediaUrl:
-          "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1080&q=85",
-        caption: "Тихий вечер на берегу океана 🌊",
-        location: "Ванкувер, Канада",
-        createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
-        duration: 5000,
-      },
-    ],
-  },
+export const FAKE_USERNAMES = [
+  "sophie_nomad",
+  "marco_rossi",
+  "elena_voyage",
+  "alex_explorer",
 ];
+
+// Curated travel stories - empty so no fake users/stories are shown
+export const CURATED_STORY_GROUPS: UserStoryGroup[] = [];
 
 // Presets for quick story creation if user wants to pick a travel scenery
 export const STORY_TRAVEL_PRESETS = [
   {
-    label: "Горы и рассвет",
-    location: "Швейцарские Альпы",
-    caption: "Чистый воздух и бесконечные вершины 🏔️",
+    label: { ru: "Горы и рассвет", en: "Mountains & Sunrise" },
+    location: { ru: "Швейцарские Альпы", en: "Swiss Alps" },
+    caption: { ru: "Чистый воздух и бесконечные вершины 🏔️", en: "Crisp air and endless peaks 🏔️" },
     url: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1080&q=85",
   },
   {
-    label: "Тропический закат",
-    location: "Бали, Индонезия",
-    caption: "Золотой час на побережье 🌅",
+    label: { ru: "Тропический закат", en: "Tropical Sunset" },
+    location: { ru: "Бали, Индонезия", en: "Bali, Indonesia" },
+    caption: { ru: "Золотой час на побережье 🌅", en: "Golden hour on the shore 🌅" },
     url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1080&q=85",
   },
   {
-    label: "Уютный старый город",
-    location: "Прага, Чехия",
-    caption: "Улочки, дышащие средневековой сказкой 🏰",
+    label: { ru: "Уютный старый город", en: "Cozy Old Town" },
+    location: { ru: "Прага, Чехия", en: "Prague, Czechia" },
+    caption: { ru: "Улочки, дышащие средневековой сказкой 🏰", en: "Streets breathing medieval magic 🏰" },
     url: "https://images.unsplash.com/photo-1541849546-216549ae216d?auto=format&fit=crop&w=1080&q=85",
   },
   {
-    label: "Огни мегаполиса",
-    location: "Токио, Япония",
-    caption: "Ночной ритм неонового города 🏮",
+    label: { ru: "Огни мегаполиса", en: "City Lights" },
+    location: { ru: "Токио, Япония", en: "Tokyo, Japan" },
+    caption: { ru: "Ночной ритм неонового города 🏮", en: "Night pulse of neon city 🏮" },
     url: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&w=1080&q=85",
   },
 ];
 
-// Check if story is within 24 hours
-export function isStoryActive(createdAt: string): boolean {
+// Helper: check if story was posted within last 24 hours
+export function isStoryActive(createdAtString: string): boolean {
   try {
-    const time = new Date(createdAt).getTime();
-    if (Number.isNaN(time)) return true;
-    return Date.now() - time < 24 * 60 * 60 * 1000;
+    const created = new Date(createdAtString).getTime();
+    if (Number.isNaN(created)) return false;
+    const now = Date.now();
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    return now - created < twentyFourHours;
   } catch {
-    return true;
+    return false;
   }
 }
 
-// Get set of seen story IDs from local storage
+// Get set of story IDs the current viewer has already watched
 export function getSeenStories(): Set<string> {
   try {
     const raw = window.localStorage.getItem(SEEN_STORIES_KEY);
     if (!raw) return new Set();
-    const parsed = JSON.parse(raw);
-    return new Set(Array.isArray(parsed) ? parsed : []);
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
   } catch {
     return new Set();
   }
 }
 
-// Mark a single story or all stories of a group as seen
-export function markStorySeen(storyId: string): void {
+// Mark a single story as viewed
+export function markStoryAsSeen(storyId: string): void {
   try {
-    const seen = getSeenStories();
-    seen.add(storyId);
+    const current = getSeenStories();
+    current.add(storyId);
     window.localStorage.setItem(
       SEEN_STORIES_KEY,
-      JSON.stringify(Array.from(seen)),
+      JSON.stringify(Array.from(current)),
+    );
+  } catch {
+    // ignore
+  }
+}
+export const markStorySeen = markStoryAsSeen;
+
+// Local storage key for current user's own stories
+function getUserStoriesStorageKey(userId?: string | null): string {
+  return userId ? `skyring-stories-${userId}` : GUEST_STORIES_KEY;
+}
+
+// Retrieve local user stories
+export function getLocalUserStories(userId?: string | null): StoryItem[] {
+  try {
+    const raw = window.localStorage.getItem(getUserStoriesStorageKey(userId));
+    if (!raw) return [];
+    const arr = JSON.parse(raw) as StoryItem[];
+    if (!Array.isArray(arr)) return [];
+    // Filter to active (last 24h)
+    return arr.filter((item) => isStoryActive(item.createdAt));
+  } catch {
+    return [];
+  }
+}
+
+// Save local user stories
+export function setLocalUserStories(
+  userId: string | null | undefined,
+  stories: StoryItem[],
+): void {
+  try {
+    window.localStorage.setItem(
+      getUserStoriesStorageKey(userId),
+      JSON.stringify(stories),
     );
   } catch {
     // ignore
   }
 }
 
-// Get stories from local cache for current user
-export function getLocalUserStories(userId?: string | null): StoryItem[] {
-  const key = userId ? `skyring-stories-${userId}` : GUEST_STORIES_KEY;
-  try {
-    const raw = window.localStorage.getItem(key);
-    if (!raw) return [];
-    const list = JSON.parse(raw) as StoryItem[];
-    return Array.isArray(list) ? list.filter((s) => isStoryActive(s.createdAt)) : [];
-  } catch {
-    return [];
-  }
-}
-
-// Save stories to local cache for current user
-export function setLocalUserStories(
-  userId: string | null | undefined,
-  stories: StoryItem[],
-): void {
-  const key = userId ? `skyring-stories-${userId}` : GUEST_STORIES_KEY;
-  try {
-    window.localStorage.setItem(key, JSON.stringify(stories));
-  } catch {
-    // ignore
-  }
-}
-
-// Fetch all active story groups (curated + current user + other users)
+// Fetch all story groups: current user's group + other registered users' groups
 export async function getAllStoryGroups(
   currentUserId?: string | null,
   currentUsername?: string,
   currentUserAvatar?: string,
-): Promise<{ myGroup: UserStoryGroup; otherGroups: UserStoryGroup[] }> {
+): Promise<{
+  myGroup: UserStoryGroup;
+  otherGroups: UserStoryGroup[];
+}> {
   const seenSet = getSeenStories();
 
-  // 1. Current user group
+  // 1. Current user's stories
   let myStories = getLocalUserStories(currentUserId);
 
   if (currentUserId) {
     try {
-      const userSnap = await getDoc(doc(db, "users", currentUserId));
+      const userRef = doc(db, "users", currentUserId);
+      const userSnap = await getDoc(userRef);
       if (userSnap.exists()) {
-        const uData = userSnap.data();
-        if (Array.isArray(uData.stories)) {
-          const firestoreActive = uData.stories.filter((s: StoryItem) =>
+        const data = userSnap.data();
+        if (Array.isArray(data.stories)) {
+          const activeRemote = data.stories.filter((s: StoryItem) =>
             isStoryActive(s.createdAt),
           );
-          if (firestoreActive.length > 0) {
-            myStories = firestoreActive;
+          if (activeRemote.length > 0) {
+            const seenIds = new Set(myStories.map((s) => s.id));
+            const merged = [...myStories];
+            for (const rem of activeRemote) {
+              if (!seenIds.has(rem.id)) {
+                merged.push(rem);
+                seenIds.add(rem.id);
+              }
+            }
+            myStories = merged.sort(
+              (a, b) =>
+                new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+            );
             setLocalUserStories(currentUserId, myStories);
           }
         }
@@ -263,15 +171,34 @@ export async function getAllStoryGroups(
     hasUnseen: myStories.some((s) => !seenSet.has(s.id)),
   };
 
-  // 2. Curated & other travelers' story groups
-  const otherGroups: UserStoryGroup[] = CURATED_STORY_GROUPS.map((group) => {
-    const activeStories = group.stories.filter((s) => isStoryActive(s.createdAt));
-    return {
-      ...group,
-      stories: activeStories,
-      hasUnseen: activeStories.some((s) => !seenSet.has(s.id)),
-    };
-  }).filter((group) => group.stories.length > 0);
+  // 2. Fetch other registered travelers' active story groups from Firestore
+  const otherGroups: UserStoryGroup[] = [];
+  try {
+    const usersSnap = await getDocs(query(collection(db, "users"), limit(25)));
+    for (const snap of usersSnap.docs) {
+      if (currentUserId && snap.id === currentUserId) continue;
+      if (snap.id.startsWith("curated-")) continue;
+      const data = snap.data();
+      const uName = data.username || "";
+      if (FAKE_USERNAMES.includes(uName.toLowerCase())) continue;
+      if (currentUsername && uName.toLowerCase() === currentUsername.toLowerCase()) continue;
+
+      if (Array.isArray(data.stories)) {
+        const activeStories = data.stories.filter((s: StoryItem) => isStoryActive(s.createdAt));
+        if (activeStories.length > 0) {
+          otherGroups.push({
+            userId: snap.id,
+            username: uName || "traveler",
+            userAvatar: data.avatar || "",
+            stories: activeStories,
+            hasUnseen: activeStories.some((s) => !seenSet.has(s.id)),
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch other users' stories:", err);
+  }
 
   // Sort groups: groups with unseen stories first, then by latest story date
   otherGroups.sort((a, b) => {
@@ -368,6 +295,10 @@ export async function getStoriesForUser(
   const clean = usernameOrUid.trim().toLowerCase().replace(/^@/, "");
   const cleanCurrent = (currentUsername || "").trim().toLowerCase().replace(/^@/, "");
 
+  if (FAKE_USERNAMES.includes(clean) || clean.startsWith("curated-")) {
+    return null;
+  }
+
   // 1. Check if it's the current user themselves
   if (
     (currentUserId && clean === currentUserId.toLowerCase()) ||
@@ -386,23 +317,7 @@ export async function getStoriesForUser(
     }
   }
 
-  // 2. Check Curated travelers
-  const curated = CURATED_STORY_GROUPS.find(
-    (g) =>
-      g.username.toLowerCase() === clean || g.userId.toLowerCase() === clean,
-  );
-  if (curated) {
-    const activeStories = curated.stories.filter((s) => isStoryActive(s.createdAt));
-    if (activeStories.length > 0) {
-      return {
-        ...curated,
-        stories: activeStories,
-        hasUnseen: activeStories.some((s) => !seenSet.has(s.id)),
-      };
-    }
-  }
-
-  // 3. Check Firestore
+  // 2. Check Firestore
   try {
     let targetUid = usernameOrUid;
     const uDoc = await getDoc(doc(db, "usernames", clean));

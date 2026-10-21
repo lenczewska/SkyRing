@@ -18,6 +18,7 @@ type LocationSelectProps = {
   emptyMessage?: string;
   allowCustom?: boolean;
   hint?: string;
+  language?: "en" | "ru";
 };
 
 export default function LocationSelect({
@@ -25,13 +26,18 @@ export default function LocationSelect({
   value,
   onChange,
   options,
-  placeholder = "Выберите...",
+  placeholder,
   required = false,
   disabled = false,
-  emptyMessage = "Ничего не найдено",
+  emptyMessage,
   allowCustom = true,
   hint,
+  language = "ru",
 }: LocationSelectProps) {
+  const defaultPlaceholder = language === "en" ? "Select..." : "Выберите...";
+  const effectivePlaceholder = placeholder ?? defaultPlaceholder;
+  const defaultEmpty = language === "en" ? "No results found" : "Ничего не найдено";
+  const effectiveEmptyMessage = emptyMessage ?? defaultEmpty;
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState(value);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -166,7 +172,7 @@ export default function LocationSelect({
             type="text"
             className="location-select-input"
             value={query}
-            placeholder={placeholder}
+            placeholder={effectivePlaceholder}
             disabled={disabled}
             required={required}
             autoComplete="off"
@@ -265,7 +271,7 @@ export default function LocationSelect({
               })
             ) : (
               <li className="location-empty-item">
-                <span>{emptyMessage}</span>
+                <span>{effectiveEmptyMessage}</span>
                 {allowCustom && query.trim() && (
                   <button
                     type="button"
@@ -276,7 +282,9 @@ export default function LocationSelect({
                       setIsOpen(false);
                     }}
                   >
-                    Использовать «{query.trim()}» ↵
+                    {language === "en"
+                      ? `Use "${query.trim()}" ↵`
+                      : `Использовать «${query.trim()}» ↵`}
                   </button>
                 )}
               </li>

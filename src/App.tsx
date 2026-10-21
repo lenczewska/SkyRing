@@ -191,7 +191,8 @@ function AppShell() {
 
   return (
     <main className="site-shell">
-      <nav className="nav container">
+      <header className="site-header">
+        <nav className="nav container">
         <button
           className="brand nav-button"
           onClick={() => navigate("/")}
@@ -350,7 +351,15 @@ function AppShell() {
             className="theme-toggle-btn"
             onClick={toggleTheme}
             type="button"
-            aria-label={theme === "dark" ? "Переключить на светлую тему" : "Переключить на тёмную тему"}
+            aria-label={
+              theme === "dark"
+                ? language === "ru"
+                  ? "Переключить на светлую тему"
+                  : "Switch to light theme"
+                : language === "ru"
+                ? "Переключить на тёмную тему"
+                : "Switch to dark theme"
+            }
             title={theme === "dark" ? (language === "ru" ? "Светлая тема" : "Light mode") : (language === "ru" ? "Тёмная тема" : "Dark mode")}
           >
             <svg
@@ -461,6 +470,7 @@ function AppShell() {
           </button>
         </div>
       </nav>
+      </header>
 
       {/* Mobile Navigation Sidebar Drawer */}
       <MobileSidebar
@@ -517,72 +527,96 @@ function AppShell() {
         <Route
           path="/profile/:username"
           element={
-            <ProfilePage
-              user={user}
-              username={username}
-              userAvatar={userAvatar}
-              onAvatarChange={setUserAvatar}
-              language={language}
-              onUsernameChange={setUsername}
-              onRequestAuth={() => setAuthMode("login")}
-            />
+            user ? (
+              <ProfilePage
+                user={user}
+                username={username}
+                userAvatar={userAvatar}
+                onAvatarChange={setUserAvatar}
+                language={language}
+                onUsernameChange={setUsername}
+                onRequestAuth={() => setAuthMode("login")}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
         <Route
           path="/map"
           element={
-            <TravelMapPage
-              user={user}
-              language={language}
-              onRequestAuth={() => setAuthMode("login")}
-            />
+            user ? (
+              <TravelMapPage
+                user={user}
+                language={language}
+                onRequestAuth={() => setAuthMode("login")}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
         <Route
           path="/posts"
           element={
-            <PostsPage
-              user={user}
-              username={username}
-              userAvatar={userAvatar}
-              language={language}
-              onRequestAuth={() => setAuthMode("login")}
-            />
+            user ? (
+              <PostsPage
+                user={user}
+                username={username}
+                userAvatar={userAvatar}
+                language={language}
+                onRequestAuth={() => setAuthMode("login")}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
         <Route
           path="/tags/:tag"
           element={
-            <HashtagPage
-              user={user}
-              username={username}
-              language={language}
-              onRequestAuth={() => setAuthMode("login")}
-            />
+            user ? (
+              <HashtagPage
+                user={user}
+                username={username}
+                language={language}
+                onRequestAuth={() => setAuthMode("login")}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
         <Route
           path="/chat"
           element={
-            <ChatPage
-              user={user}
-              username={username}
-              userAvatar={userAvatar}
-              language={language}
-              onRequestAuth={() => setAuthMode("login")}
-            />
+            user ? (
+              <ChatPage
+                user={user}
+                username={username}
+                userAvatar={userAvatar}
+                language={language}
+                onRequestAuth={() => setAuthMode("login")}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
         <Route
           path="/chat/:targetUsername"
           element={
-            <ChatPage
-              user={user}
-              username={username}
-              userAvatar={userAvatar}
-              language={language}
-              onRequestAuth={() => setAuthMode("login")}
-            />
+            user ? (
+              <ChatPage
+                user={user}
+                username={username}
+                userAvatar={userAvatar}
+                language={language}
+                onRequestAuth={() => setAuthMode("login")}
+              />
+            ) : (
+              <Navigate to="/" replace />
+            )
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -643,6 +677,7 @@ function AppShell() {
         username={username}
         userAvatar={userAvatar}
         unreadChatCount={unreadChatCount}
+        language={language}
         onRequestAuth={() => setAuthMode("login")}
         onCreatePost={() => {
           if (!user) {

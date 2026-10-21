@@ -57,6 +57,17 @@ export default function PostsPage({
   const [followingMap, setFollowingMap] = useState<Record<string, boolean>>({});
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [expandedDescIds, setExpandedDescIds] = useState<Record<string, boolean>>({});
+  const [editingFeedCommentKey, setEditingFeedCommentKey] = useState<string | null>(null);
+  const [editingFeedCommentText, setEditingFeedCommentText] = useState("");
+  const [activeFeedCommentMenuKey, setActiveFeedCommentMenuKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveFeedCommentMenuKey(null);
+    };
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, []);
 
   const toggleDesc = (postId: string) => {
     setExpandedDescIds((prev) => ({
@@ -452,7 +463,7 @@ export default function PostsPage({
         { posts: updatedUserPosts },
         { merge: true },
       );
-    } else if (post.authorId && !post.authorId.startsWith("curated-")) {
+    } else if (post.authorId) {
       try {
         const authorSnap = await getDoc(doc(db, "users", post.authorId));
         if (authorSnap.exists()) {
@@ -470,6 +481,86 @@ export default function PostsPage({
         }
       } catch (err) {
         console.warn("Could not save comment to author's post:", err);
+      }
+    }
+  };
+
+  const handleEditComment = async (postId: string, commentIndex: number, newText: string) => {
+    const trimmed = newText.trim();
+    if (!trimmed) return;
+
+    const updater = (list: Post[]) =>
+      list.map((p) => {
+        if (p.id !== postId) return p;
+        const nextComments = p.comments.map((c, i) => {
+          if (i !== commentIndex) return c;
+          if (typeof c === "object" && c !== null) {
+            return { ...c, text: trimmed, isEdited: true };
+          }
+          return {
+            id: `${Date.now()}`,
+            authorUsername: username || "traveller",
+            text: trimmed,
+            createdAt: new Date().toISOString(),
+            isEdited: true,
+          };
+        });
+        return { ...p, comments: nextComments };
+      });
+
+    setMyPosts(updater);
+    setFollowingPosts(updater);
+    setAllPosts(updater);
+    setSelectedPost((prev) => (prev && prev.id === postId ? updater([prev])[0] : prev));
+
+    const target = allPosts.find((p) => p.id === postId) || myPosts.find((p) => p.id === postId);
+    if (target && user) {
+      if (target.authorId === user.uid || !target.authorId) {
+        const nextUserPosts = myPosts.map((p) => {
+          if (p.id !== postId) return p;
+          const nextComments = p.comments.map((c, i) =>
+            i === commentIndex
+              ? typeof c === "object" && c !== null
+                ? { ...c, text: trimmed, isEdited: true }
+                : { id: `${Date.now()}`, authorUsername: username || "traveller", text: trimmed, createdAt: new Date().toISOString(), isEdited: true }
+              : c
+          );
+          return { ...p, comments: nextComments };
+        });
+        try {
+          await setDoc(doc(db, "users", user.uid), { posts: nextUserPosts }, { merge: true });
+        } catch (e) {
+          console.warn("Could not save edited comment to Firestore:", e);
+        }
+      }
+    }
+  };
+
+  const handleDeleteComment = async (postId: string, commentIndex: number) => {
+    const updater = (list: Post[]) =>
+      list.map((p) => {
+        if (p.id !== postId) return p;
+        const nextComments = p.comments.filter((_, i) => i !== commentIndex);
+        return { ...p, comments: nextComments };
+      });
+
+    setMyPosts(updater);
+    setFollowingPosts(updater);
+    setAllPosts(updater);
+    setSelectedPost((prev) => (prev && prev.id === postId ? updater([prev])[0] : prev));
+
+    const target = allPosts.find((p) => p.id === postId) || myPosts.find((p) => p.id === postId);
+    if (target && user) {
+      if (target.authorId === user.uid || !target.authorId) {
+        const nextUserPosts = myPosts.map((p) => {
+          if (p.id !== postId) return p;
+          return { ...p, comments: p.comments.filter((_, i) => i !== commentIndex) };
+        });
+        try {
+          await setDoc(doc(db, "users", user.uid), { posts: nextUserPosts }, { merge: true });
+        } catch (e) {
+          console.warn("Could not save comment deletion to Firestore:", e);
+        }
       }
     }
   };
@@ -869,7 +960,7 @@ export default function PostsPage({
                             className={`mini-follow-btn ${isFollowed ? "following" : ""}`}
                             onClick={() =>
                               void handleFollowTraveler({
-                                uid: post.authorId || `curated-${authorUName}`,
+                                uid: post.authorId || authorUName,
                                 username: authorUName,
                                 postsCount: 0,
                                 placesCount: 0,
@@ -988,19 +1079,144 @@ export default function PostsPage({
                                   ? c.authorUsername
                                   : authorUName;
                                 const cText = isObj ? c.text : c;
+                                const cIsEdited = isObj ? Boolean(c.isEdited) : false;
+                                const commentKey = `${post.id}-${index}`;
+                                const isEditingThis = editingFeedCommentKey === commentKey;
+
+                                const isCommentAuthor =
+                                  Boolean(username) &&
+                                  Boolean(cAuthor) &&
+                                  cAuthor.toLowerCase() === username.toLowerCase();
+                                const isPostAuthor =
+                                  Boolean(username) &&
+                                  Boolean(post.authorUsername) &&
+                                  post.authorUsername?.toLowerCase() === username.toLowerCase();
+
+                                const canEdit = isCommentAuthor;
+                                const canDelete = isCommentAuthor || isPostAuthor;
+                                const hasActions = canEdit || canDelete;
 
                                 return (
                                   <div
-                                    className="comment-item"
-                                    key={`${post.id}-${index}`}
+                                    className={`comment-item ${isEditingThis ? "is-editing" : ""}`}
+                                    key={commentKey}
                                   >
-                                    <Link
-                                      to={`/profile/${cAuthor}`}
-                                      className="comment-author"
-                                    >
-                                      @{cAuthor}:
-                                    </Link>{" "}
-                                    <span className="comment-text">{cText}</span>
+                                    {isEditingThis ? (
+                                      <div className="feed-comment-edit-box">
+                                        <input
+                                          type="text"
+                                          className="feed-comment-edit-input"
+                                          value={editingFeedCommentText}
+                                          onChange={(e) => setEditingFeedCommentText(e.target.value)}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                              e.preventDefault();
+                                              void handleEditComment(post.id, index, editingFeedCommentText);
+                                              setEditingFeedCommentKey(null);
+                                            } else if (e.key === "Escape") {
+                                              setEditingFeedCommentKey(null);
+                                            }
+                                          }}
+                                          autoFocus
+                                        />
+                                        <div className="feed-comment-edit-btns">
+                                          <button
+                                            type="button"
+                                            className="feed-comment-btn save"
+                                            onClick={() => {
+                                              void handleEditComment(post.id, index, editingFeedCommentText);
+                                              setEditingFeedCommentKey(null);
+                                            }}
+                                            title={language === "ru" ? "Сохранить" : "Save"}
+                                          >
+                                            ✓
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="feed-comment-btn cancel"
+                                            onClick={() => setEditingFeedCommentKey(null)}
+                                            title={language === "ru" ? "Отмена" : "Cancel"}
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div className="comment-item-body">
+                                          <Link
+                                            to={`/profile/${cAuthor}`}
+                                            className="comment-author"
+                                          >
+                                            @{cAuthor}:
+                                          </Link>{" "}
+                                          <span className="comment-text">{cText}</span>
+                                          {cIsEdited && (
+                                            <span className="comment-edited-badge">
+                                              {language === "ru" ? "ред." : "edited"}
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {hasActions && (
+                                          <div className="feed-comment-actions-wrap">
+                                            <button
+                                              type="button"
+                                              className="feed-comment-action-trigger"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveFeedCommentMenuKey(
+                                                  activeFeedCommentMenuKey === commentKey ? null : commentKey
+                                                );
+                                              }}
+                                              title={language === "ru" ? "Действия" : "Actions"}
+                                              aria-label="Comment options"
+                                            >
+                                              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                                                <circle cx="12" cy="5" r="2.2" />
+                                                <circle cx="12" cy="12" r="2.2" />
+                                                <circle cx="12" cy="19" r="2.2" />
+                                              </svg>
+                                            </button>
+
+                                            {activeFeedCommentMenuKey === commentKey && (
+                                              <div
+                                                className="comment-action-dropdown feed-dropdown"
+                                                onClick={(e) => e.stopPropagation()}
+                                              >
+                                                {canEdit && (
+                                                  <button
+                                                    type="button"
+                                                    className="comment-action-item"
+                                                    onClick={() => {
+                                                      setEditingFeedCommentKey(commentKey);
+                                                      setEditingFeedCommentText(cText);
+                                                      setActiveFeedCommentMenuKey(null);
+                                                    }}
+                                                  >
+                                                    <span className="action-icon">✏️</span>
+                                                    <span>{language === "ru" ? "Редактировать" : "Edit"}</span>
+                                                  </button>
+                                                )}
+                                                {canDelete && (
+                                                  <button
+                                                    type="button"
+                                                    className="comment-action-item delete"
+                                                    onClick={() => {
+                                                      void handleDeleteComment(post.id, index);
+                                                      setActiveFeedCommentMenuKey(null);
+                                                    }}
+                                                  >
+                                                    <span className="action-icon">🗑️</span>
+                                                    <span>{language === "ru" ? "Удалить" : "Delete"}</span>
+                                                  </button>
+                                                )}
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
                                   </div>
                                 );
                               })}
@@ -1074,6 +1290,8 @@ export default function PostsPage({
               void handleAddComment(p);
             }
           }}
+          onEditComment={handleEditComment}
+          onDeleteComment={handleDeleteComment}
         />
       )}
 

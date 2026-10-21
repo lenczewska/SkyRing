@@ -160,6 +160,42 @@ export default function HashtagPage({
     );
   };
 
+  const handleEditComment = (postId: string, commentIndex: number, newText: string) => {
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const nextComments = (p.comments || []).map((c, i) => {
+          if (i !== commentIndex) return c;
+          if (typeof c === "object" && c !== null) {
+            return { ...c, text: newText, isEdited: true };
+          }
+          return {
+            id: `${Date.now()}`,
+            authorUsername: username || "traveller",
+            text: newText,
+            createdAt: new Date().toISOString(),
+            isEdited: true,
+          };
+        });
+        const updated = { ...p, comments: nextComments };
+        if (selectedPost?.id === postId) setSelectedPost(updated);
+        return updated;
+      })
+    );
+  };
+
+  const handleDeleteComment = (postId: string, commentIndex: number) => {
+    setPosts((prev) =>
+      prev.map((p) => {
+        if (p.id !== postId) return p;
+        const nextComments = (p.comments || []).filter((_, i) => i !== commentIndex);
+        const updated = { ...p, comments: nextComments };
+        if (selectedPost?.id === postId) setSelectedPost(updated);
+        return updated;
+      })
+    );
+  };
+
   return (
     <section className="hashtag-page container">
       {/* Top Navigation */}
@@ -353,6 +389,8 @@ export default function HashtagPage({
           onClose={() => setSelectedPost(null)}
           onLike={handleLike}
           onComment={handleComment}
+          onEditComment={handleEditComment}
+          onDeleteComment={handleDeleteComment}
         />
       )}
     </section>

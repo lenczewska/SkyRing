@@ -64,19 +64,13 @@ export default function FriendsModal({
           targetList.some(
             (id) =>
               id.toLowerCase() === uName ||
-              id.toLowerCase() === uUid ||
-              (t.uid.startsWith("curated-") && targetList.includes(t.username)),
+              id.toLowerCase() === uUid,
           ) ||
           (mode === "following" && targetList.includes(t.username))
         );
       });
 
-      // If list is empty for demo, show some suggested travelers
-      if (matched.length === 0 && targetList.length === 0) {
-        setUsers(allTravelers.slice(0, 4));
-      } else {
-        setUsers(matched.length > 0 ? matched : allTravelers.slice(0, 3));
-      }
+      setUsers(matched);
       setLoading(false);
     };
 
