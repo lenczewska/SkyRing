@@ -272,6 +272,7 @@ export default function OnboardingModal({
                 placeholder={copy.countryPlaceholder}
                 required
                 allowCustom={true}
+                language={language}
                 emptyMessage={
                   language === "ru"
                     ? "Страна не найдена"
@@ -287,6 +288,7 @@ export default function OnboardingModal({
                 placeholder={copy.cityPlaceholder}
                 required
                 allowCustom={true}
+                language={language}
                 disabled={!country.trim()}
                 hint={
                   !country.trim()

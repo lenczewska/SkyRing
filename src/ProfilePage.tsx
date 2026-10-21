@@ -6,6 +6,7 @@ import MapView from "./MapView";
 import type { Post, UserProfile, UserStoryGroup, VisitedPlace } from "./types";
 import { db } from "./firebase";
 import {
+  countUniqueFollowing,
   fetchUserProfile,
   getLocalFollowing,
   toggleFollow,
@@ -159,8 +160,8 @@ export default function ProfilePage({
         setPlaces(userPlaces);
         setBio(userBio);
         setBioDraft(userBio);
-        setFollowersCount(userFollowers.length);
-        setFollowingCount(userFollowing.length);
+        setFollowersCount(countUniqueFollowing(userFollowers));
+        setFollowingCount(countUniqueFollowing(userFollowing));
 
         setProfileData({
           uid: user.uid,
@@ -207,12 +208,12 @@ export default function ProfilePage({
           localFollowing.includes(data.username.toLowerCase());
         setIsFollowing(isF);
 
-        const baseFollowers = data.followers?.length ?? 0;
+        const baseFollowers = countUniqueFollowing(data.followers);
         setFollowersCount(
           baseFollowers +
             (isF && !data.followers?.includes(user?.uid ?? "") ? 1 : 0),
         );
-        setFollowingCount(data.following?.length ?? 0);
+        setFollowingCount(countUniqueFollowing(data.following));
 
         // Check mutual
         const isFollowerOfCurrent = user
@@ -876,6 +877,40 @@ export default function ProfilePage({
                 const nextComments = [...p.comments, commentObj];
                 const updated = { ...p, comments: nextComments };
                 if (selectedPost.id === pId) setSelectedPost(updated);
+                return updated;
+              })
+            );
+          }}
+          onEditComment={(pId, commentIndex, newText) => {
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (p.id !== pId) return p;
+                const nextComments = p.comments.map((c, i) => {
+                  if (i !== commentIndex) return c;
+                  if (typeof c === "object" && c !== null) {
+                    return { ...c, text: newText, isEdited: true };
+                  }
+                  return {
+                    id: `${Date.now()}`,
+                    authorUsername: currentUsername || "traveller",
+                    text: newText,
+                    createdAt: new Date().toISOString(),
+                    isEdited: true,
+                  };
+                });
+                const updated = { ...p, comments: nextComments };
+                if (selectedPost && selectedPost.id === pId) setSelectedPost(updated);
+                return updated;
+              })
+            );
+          }}
+          onDeleteComment={(pId, commentIndex) => {
+            setPosts((prev) =>
+              prev.map((p) => {
+                if (p.id !== pId) return p;
+                const nextComments = p.comments.filter((_, i) => i !== commentIndex);
+                const updated = { ...p, comments: nextComments };
+                if (selectedPost && selectedPost.id === pId) setSelectedPost(updated);
                 return updated;
               })
             );

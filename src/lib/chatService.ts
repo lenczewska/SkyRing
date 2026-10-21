@@ -5,6 +5,21 @@ import type { ChatConversation, ChatMessage } from "../types";
 const CONVERSATIONS_STORAGE_PREFIX = "skyring-conversations-";
 const MESSAGES_STORAGE_PREFIX = "skyring-chat-";
 
+export const FAKE_USERNAMES = [
+  "sophie_nomad",
+  "marco_rossi",
+  "elena_voyage",
+  "alex_explorer",
+];
+
+export function isFakeUser(username?: string, uid?: string): boolean {
+  if (!username && !uid) return false;
+  if (uid && uid.startsWith("curated-")) return true;
+  const cleanU = (username || "").trim().toLowerCase().replace(/^@/, "");
+  if (FAKE_USERNAMES.includes(cleanU)) return true;
+  return false;
+}
+
 // Generate deterministic conversation ID for two users
 export function getDirectChatId(userA: string, userB: string): string {
   const normA = userA.trim().toLowerCase().replace(/^@/, "");
@@ -12,150 +27,7 @@ export function getDirectChatId(userA: string, userB: string): string {
   return [normA, normB].sort().join("__");
 }
 
-// Initial starter conversations for community travelers so users have an engaging experience immediately
-function getInitialCuratedConversations(currentUser: {
-  uid: string;
-  username: string;
-  avatar?: string;
-}): ChatConversation[] {
-  const now = Date.now();
-  return [
-    {
-      id: getDirectChatId(currentUser.username, "sophie_nomad"),
-      participantIds: [currentUser.uid, "curated-sophie"],
-      participantUsernames: [currentUser.username, "sophie_nomad"],
-      otherUser: {
-        uid: "curated-sophie",
-        username: "sophie_nomad",
-        avatar: "S",
-        location: "Париж, Франция",
-        isOnline: true,
-      },
-      lastMessage: {
-        text: "Привет! Рада знакомству! Если планируешь поездку в Амальфи или Киото — с радостью поделюсь маршрутами ☕️🌿",
-        senderUsername: "sophie_nomad",
-        createdAt: new Date(now - 25 * 60 * 1000).toISOString(),
-      },
-      unreadCount: 1,
-      updatedAt: new Date(now - 25 * 60 * 1000).toISOString(),
-    },
-    {
-      id: getDirectChatId(currentUser.username, "marco_rossi"),
-      participantIds: [currentUser.uid, "curated-marco"],
-      participantUsernames: [currentUser.username, "marco_rossi"],
-      otherUser: {
-        uid: "curated-marco",
-        username: "marco_rossi",
-        avatar: "M",
-        location: "Рим, Италия",
-        isOnline: false,
-      },
-      lastMessage: {
-        text: "Ciao! Отличные отметки на карте. Если будешь в Риме, покажу пару скрытых двориков Трастевере! 🏛️",
-        senderUsername: "marco_rossi",
-        createdAt: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
-      },
-      unreadCount: 0,
-      updatedAt: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
-    },
-    {
-      id: getDirectChatId(currentUser.username, "elena_voyage"),
-      participantIds: [currentUser.uid, "curated-elena"],
-      participantUsernames: [currentUser.username, "elena_voyage"],
-      otherUser: {
-        uid: "curated-elena",
-        username: "elena_voyage",
-        avatar: "E",
-        location: "Алматы, Казахстан",
-        isOnline: true,
-      },
-      lastMessage: {
-        text: "Привет! Собираешься в горы в этом сезоне? Могу подсказать проверенные кемпинги 🏔️✨",
-        senderUsername: "elena_voyage",
-        createdAt: new Date(now - 20 * 60 * 60 * 1000).toISOString(),
-      },
-      unreadCount: 0,
-      updatedAt: new Date(now - 20 * 60 * 60 * 1000).toISOString(),
-    },
-  ];
-}
-
-// Initial starter messages for each curated chat
-function getInitialStarterMessages(
-  chatId: string,
-  _currentUser?: { username: string },
-): ChatMessage[] {
-  const now = Date.now();
-  if (chatId.includes("sophie_nomad")) {
-    return [
-      {
-        id: "msg-sophie-1",
-        chatId,
-        senderId: "curated-sophie",
-        senderUsername: "sophie_nomad",
-        senderAvatar: "S",
-        text: "Привет! Рада знакомству! Если планируешь поездку в Амальфи или Киото — с радостью поделюсь маршрутами ☕️🌿",
-        createdAt: new Date(now - 25 * 60 * 1000).toISOString(),
-        isRead: false,
-      },
-    ];
-  }
-  if (chatId.includes("marco_rossi")) {
-    return [
-      {
-        id: "msg-marco-1",
-        chatId,
-        senderId: "curated-marco",
-        senderUsername: "marco_rossi",
-        senderAvatar: "M",
-        text: "Ciao! Отличные отметки на карте. Если будешь в Риме, покажу пару скрытых двориков Трастевере! 🏛️",
-        createdAt: new Date(now - 3 * 60 * 60 * 1000).toISOString(),
-        isRead: true,
-      },
-    ];
-  }
-  if (chatId.includes("elena_voyage")) {
-    return [
-      {
-        id: "msg-elena-1",
-        chatId,
-        senderId: "curated-elena",
-        senderUsername: "elena_voyage",
-        senderAvatar: "E",
-        text: "Привет! Собираешься в горы в этом сезоне? Могу подсказать проверенные кемпинги 🏔️✨",
-        createdAt: new Date(now - 20 * 60 * 60 * 1000).toISOString(),
-        isRead: true,
-      },
-    ];
-  }
-  return [];
-}
-
-// Smart simulated replies from curated travelers to make chatting feel real and alive
-const CURATED_REPLIES: Record<string, string[]> = {
-  sophie_nomad: [
-    "Звучит потрясающе! Обязательно добавь это место в свой список путешествий 📸",
-    "Полностью согласна! Утренний свет там просто невероятный, особенно на рассвете.",
-    "Спасибо за сообщение! С удовольствием посмотрю твои новые посты в ленте 🌿",
-    "Кстати, очень рекомендую заглянуть в небольшие местные кафе на улочках — там лучший кофе!",
-  ],
-  marco_rossi: [
-    "Отличная идея! Архитектура там завораживает в любое время суток 🏛️",
-    "Grazie! Если понадобятся точные координаты смотровых площадок — только скажи!",
-    "Именно так путешествия и открывают для нас мир!",
-  ],
-  elena_voyage: [
-    "Класс! Горы никогда не перестают удивлять. Главное — удобная обувь и термос с чаем ⛰️",
-    "Обязательно отправляйся туда! Впечатления останутся на всю жизнь 🌌",
-    "Супер! Держи меня в курсе, как пройдет поездка!",
-  ],
-  alex_explorer: [
-    "Привет! Маршрут отличный, проверено на себе 🌲",
-    "Там потрясающий воздух и чистейшие озера, удачи в походе!",
-  ],
-};
-
-// Get all conversations for current user
+// Get all conversations for current user - filtering out any fake / curated accounts
 export function getStoredConversations(currentUser: {
   uid: string;
   username: string;
@@ -167,14 +39,36 @@ export function getStoredConversations(currentUser: {
       `${CONVERSATIONS_STORAGE_PREFIX}${userKey}`,
     );
     if (!raw) {
-      const initial = getInitialCuratedConversations(currentUser);
-      saveStoredConversations(currentUser, initial);
-      return initial;
+      return [];
     }
     const parsed = JSON.parse(raw) as ChatConversation[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+
+    // Filter out any fake/curated conversations
+    const cleaned = parsed.filter((c) => {
+      const otherFake = isFakeUser(c.otherUser?.username, c.otherUser?.uid);
+      const participantFake = c.participantUsernames?.some((u) =>
+        FAKE_USERNAMES.includes(u.toLowerCase().replace(/^@/, "")),
+      );
+      const idFake = c.participantIds?.some((id) => id.startsWith("curated-"));
+      const chatIdFake = FAKE_USERNAMES.some((fake) =>
+        c.id.toLowerCase().includes(fake),
+      );
+      if (otherFake || participantFake || idFake || chatIdFake) {
+        try {
+          window.localStorage.removeItem(`${MESSAGES_STORAGE_PREFIX}${c.id}`);
+        } catch {}
+        return false;
+      }
+      return true;
+    });
+
+    if (cleaned.length !== parsed.length) {
+      saveStoredConversations(currentUser, cleaned);
+    }
+    return cleaned;
   } catch {
-    return getInitialCuratedConversations(currentUser);
+    return [];
   }
 }
 
@@ -184,10 +78,22 @@ export function saveStoredConversations(
   convs: ChatConversation[],
 ): void {
   const userKey = currentUser.uid || currentUser.username || "guest";
+  const cleaned = convs.filter((c) => {
+    const otherFake = isFakeUser(c.otherUser?.username, c.otherUser?.uid);
+    const participantFake = c.participantUsernames?.some((u) =>
+      FAKE_USERNAMES.includes(u.toLowerCase().replace(/^@/, "")),
+    );
+    const idFake = c.participantIds?.some((id) => id.startsWith("curated-"));
+    const chatIdFake = FAKE_USERNAMES.some((fake) =>
+      c.id.toLowerCase().includes(fake),
+    );
+    return !otherFake && !participantFake && !idFake && !chatIdFake;
+  });
+
   try {
     window.localStorage.setItem(
       `${CONVERSATIONS_STORAGE_PREFIX}${userKey}`,
-      JSON.stringify(convs),
+      JSON.stringify(cleaned),
     );
   } catch {
     // ignore
@@ -197,19 +103,27 @@ export function saveStoredConversations(
 // Get messages for a given chat
 export function getStoredMessages(
   chatId: string,
-  currentUser: { username: string },
+  _currentUser: { username: string },
 ): ChatMessage[] {
+  if (FAKE_USERNAMES.some((fake) => chatId.toLowerCase().includes(fake))) {
+    try {
+      window.localStorage.removeItem(`${MESSAGES_STORAGE_PREFIX}${chatId}`);
+    } catch {}
+    return [];
+  }
   try {
     const raw = window.localStorage.getItem(`${MESSAGES_STORAGE_PREFIX}${chatId}`);
-    if (!raw) {
-      const initial = getInitialStarterMessages(chatId, currentUser);
-      if (initial.length > 0) {
-        saveStoredMessages(chatId, initial);
-      }
-      return initial;
-    }
+    if (!raw) return [];
     const parsed = JSON.parse(raw) as ChatMessage[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter(
+      (m) =>
+        !isFakeUser(m.senderUsername, m.senderId) &&
+        !m.id.startsWith("msg-sophie") &&
+        !m.id.startsWith("msg-marco") &&
+        !m.id.startsWith("msg-elena"),
+    );
   } catch {
     return [];
   }
@@ -217,6 +131,7 @@ export function getStoredMessages(
 
 // Save messages for a given chat
 export function saveStoredMessages(chatId: string, msgs: ChatMessage[]): void {
+  if (FAKE_USERNAMES.some((fake) => chatId.toLowerCase().includes(fake))) return;
   try {
     window.localStorage.setItem(
       `${MESSAGES_STORAGE_PREFIX}${chatId}`,
@@ -227,7 +142,90 @@ export function saveStoredMessages(chatId: string, msgs: ChatMessage[]): void {
   }
 }
 
-// Send a message
+// Edit a message text
+export function editChatMessage(
+  chatId: string,
+  messageId: string,
+  newText: string,
+  currentUser: { username: string }
+): ChatMessage[] {
+  const currentMsgs = getStoredMessages(chatId, currentUser);
+  const updated = currentMsgs.map((m) =>
+    m.id === messageId ? { ...m, text: newText.trim(), isEdited: true } : m
+  );
+  saveStoredMessages(chatId, updated);
+
+  try {
+    const rawConvs = window.localStorage.getItem(`${CONVERSATIONS_STORAGE_PREFIX}${currentUser.username}`);
+    if (rawConvs) {
+      const convs = JSON.parse(rawConvs) as ChatConversation[];
+      const updatedConvs = convs.map((c) => {
+        if (c.id === chatId && c.lastMessage) {
+          const lastMsg = updated[updated.length - 1];
+          if (lastMsg) {
+            return {
+              ...c,
+              lastMessage: {
+                text: lastMsg.text,
+                senderUsername: lastMsg.senderUsername,
+                createdAt: lastMsg.createdAt,
+              },
+            };
+          }
+        }
+        return c;
+      });
+      window.localStorage.setItem(
+        `${CONVERSATIONS_STORAGE_PREFIX}${currentUser.username}`,
+        JSON.stringify(updatedConvs)
+      );
+    }
+  } catch {}
+
+  return updated;
+}
+
+// Delete a message
+export function deleteChatMessage(
+  chatId: string,
+  messageId: string,
+  currentUser: { username: string }
+): ChatMessage[] {
+  const currentMsgs = getStoredMessages(chatId, currentUser);
+  const updated = currentMsgs.filter((m) => m.id !== messageId);
+  saveStoredMessages(chatId, updated);
+
+  try {
+    const rawConvs = window.localStorage.getItem(`${CONVERSATIONS_STORAGE_PREFIX}${currentUser.username}`);
+    if (rawConvs) {
+      const convs = JSON.parse(rawConvs) as ChatConversation[];
+      const updatedConvs = convs.map((c) => {
+        if (c.id === chatId) {
+          const lastMsg = updated[updated.length - 1];
+          return {
+            ...c,
+            lastMessage: lastMsg
+              ? {
+                  text: lastMsg.text,
+                  senderUsername: lastMsg.senderUsername,
+                  createdAt: lastMsg.createdAt,
+                }
+              : undefined,
+          };
+        }
+        return c;
+      });
+      window.localStorage.setItem(
+        `${CONVERSATIONS_STORAGE_PREFIX}${currentUser.username}`,
+        JSON.stringify(updatedConvs)
+      );
+    }
+  } catch {}
+
+  return updated;
+}
+
+// Send a chat message
 export async function sendChatMessage({
   chatId,
   senderId,
@@ -236,7 +234,7 @@ export async function sendChatMessage({
   text,
   replyToStory,
   otherUser,
-  onReceivedReply,
+  _onReceivedReply,
 }: {
   chatId: string;
   senderId: string;
@@ -254,44 +252,38 @@ export async function sendChatMessage({
     avatar?: string;
     location?: string;
   };
-  onReceivedReply?: (reply: ChatMessage) => void;
+  _onReceivedReply?: (reply: ChatMessage) => void;
 }): Promise<ChatMessage> {
+  void _onReceivedReply;
   const newMsg: ChatMessage = {
     id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     chatId,
     senderId,
     senderUsername,
-    senderAvatar: senderAvatar || "",
+    replyToStory,
+    senderAvatar,
     text: text.trim(),
     createdAt: new Date().toISOString(),
-    replyToStory,
-    isRead: true,
+    isRead: false,
+    ...(replyToStory ? { replyToStory } : {}),
   };
 
-  // 1. Update messages list
+  // 1. Save locally in messages array
   const currentMsgs = getStoredMessages(chatId, { username: senderUsername });
-  const updatedMsgs = [...currentMsgs, newMsg];
-  saveStoredMessages(chatId, updatedMsgs);
+  saveStoredMessages(chatId, [...currentMsgs, newMsg]);
 
-  // 2. Update conversation record
+  // 2. Update conversation list locally
   const currentConvs = getStoredConversations({
     uid: senderId,
     username: senderUsername,
-    avatar: senderAvatar,
   });
-
   const existingIdx = currentConvs.findIndex((c) => c.id === chatId);
+
   const updatedConv: ChatConversation = {
     id: chatId,
     participantIds: [senderId, otherUser.uid],
     participantUsernames: [senderUsername, otherUser.username],
-    otherUser: {
-      uid: otherUser.uid,
-      username: otherUser.username,
-      avatar: otherUser.avatar,
-      location: otherUser.location,
-      isOnline: true,
-    },
+    otherUser,
     lastMessage: {
       text: newMsg.text,
       senderUsername: newMsg.senderUsername,
@@ -335,52 +327,6 @@ export async function sendChatMessage({
     } catch (err) {
       console.warn("Could not sync chat to Firestore:", err);
     }
-  }
-
-  // 4. Simulated interactive reply if recipient is a curated traveler
-  const curatedKey = otherUser.username.toLowerCase();
-  if (CURATED_REPLIES[curatedKey]) {
-    const replies = CURATED_REPLIES[curatedKey];
-    const replyText = replies[Math.floor(Math.random() * replies.length)];
-
-    setTimeout(() => {
-      const replyMsg: ChatMessage = {
-        id: `reply-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-        chatId,
-        senderId: otherUser.uid,
-        senderUsername: otherUser.username,
-        senderAvatar: otherUser.avatar,
-        text: replyText,
-        createdAt: new Date().toISOString(),
-        isRead: false,
-      };
-
-      const msgsNow = getStoredMessages(chatId, { username: senderUsername });
-      saveStoredMessages(chatId, [...msgsNow, replyMsg]);
-
-      // update conv unread count if user is not in active view
-      const convsNow = getStoredConversations({
-        uid: senderId,
-        username: senderUsername,
-      });
-      const idx = convsNow.findIndex((c) => c.id === chatId);
-      if (idx >= 0) {
-        convsNow[idx].lastMessage = {
-          text: replyText,
-          senderUsername: otherUser.username,
-          createdAt: replyMsg.createdAt,
-        };
-        convsNow[idx].updatedAt = replyMsg.createdAt;
-        saveStoredConversations(
-          { uid: senderId, username: senderUsername },
-          convsNow,
-        );
-      }
-
-      if (onReceivedReply) {
-        onReceivedReply(replyMsg);
-      }
-    }, 1400);
   }
 
   return newMsg;

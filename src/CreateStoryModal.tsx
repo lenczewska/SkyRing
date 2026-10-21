@@ -30,10 +30,10 @@ export default function CreateStoryModal({
     STORY_TRAVEL_PRESETS[0].url,
   );
   const [caption, setCaption] = useState<string>(
-    STORY_TRAVEL_PRESETS[0].caption,
+    STORY_TRAVEL_PRESETS[0].caption[language],
   );
   const [location, setLocation] = useState<string>(
-    STORY_TRAVEL_PRESETS[0].location,
+    STORY_TRAVEL_PRESETS[0].location[language],
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState("");
@@ -88,8 +88,8 @@ export default function CreateStoryModal({
 
   const handleApplyPreset = (preset: (typeof STORY_TRAVEL_PRESETS)[0]) => {
     setSelectedImage(preset.url);
-    if (!caption) setCaption(preset.caption);
-    if (!location) setLocation(preset.location);
+    if (!caption) setCaption(preset.caption[language]);
+    if (!location) setLocation(preset.location[language]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -236,15 +236,15 @@ export default function CreateStoryModal({
                 <div className="presets-cards-grid">
                   {STORY_TRAVEL_PRESETS.map((preset) => (
                     <button
-                      key={preset.label}
+                      key={preset.url}
                       type="button"
                       className={`preset-thumb-btn ${
                         selectedImage === preset.url ? "preset-selected" : ""
                       }`}
                       onClick={() => handleApplyPreset(preset)}
                     >
-                      <img src={preset.url} alt={preset.label} />
-                      <span>{preset.label}</span>
+                      <img src={preset.url} alt={preset.label[language]} />
+                      <span>{preset.label[language]}</span>
                     </button>
                   ))}
                 </div>

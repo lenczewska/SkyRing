@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { User } from "firebase/auth";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import type { ChatConversation, ChatMessage } from "./types";
+import type { ChatConversation, ChatMessage, UserSummary } from "./types";
 import UserAvatar from "./UserAvatar";
 import {
   getOrCreateChatWithUser,
@@ -9,8 +9,10 @@ import {
   getStoredMessages,
   markConversationAsRead,
   sendChatMessage,
+  editChatMessage,
+  deleteChatMessage,
 } from "./lib/chatService";
-import { CURATED_TRAVELERS } from "./lib/friendsService";
+import { searchTravelers } from "./lib/friendsService";
 import { useModalScrollLock } from "./lib/useModalScrollLock";
 
 type ChatPageProps = {
@@ -84,14 +86,48 @@ export default function ChatPage({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
   const [showTravelerModal, setShowTravelerModal] = useState(false);
+  const [modalTravelers, setModalTravelers] = useState<UserSummary[]>([]);
+  const [modalSearchQuery, setModalSearchQuery] = useState("");
+  const [loadingModalTravelers, setLoadingModalTravelers] = useState(false);
+
+  useEffect(() => {
+    if (!showTravelerModal) return;
+    let active = true;
+    setLoadingModalTravelers(true);
+
+    const timer = setTimeout(() => {
+      searchTravelers(modalSearchQuery, user?.uid, username).then((results) => {
+        if (!active) return;
+        setModalTravelers(results);
+        setLoadingModalTravelers(false);
+      });
+    }, 150);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [showTravelerModal, modalSearchQuery, user?.uid, username]);
+
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingMsgText, setEditingMsgText] = useState("");
+  const [activeMenuMsgId, setActiveMenuMsgId] = useState<string | null>(null);
 
   useModalScrollLock(showTravelerModal);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Close message action selector on outside click
+  useEffect(() => {
+    const handleOutsideClick = () => {
+      setActiveMenuMsgId(null);
+    };
+    window.addEventListener("click", handleOutsideClick);
+    return () => window.removeEventListener("click", handleOutsideClick);
+  }, []);
 
   // Prevent whole-page scroll while on the messenger view
   useEffect(() => {
@@ -127,19 +163,15 @@ export default function ChatPage({
     refreshConversations();
   }, [user?.uid, username, userAvatar]);
 
-  // Handle URL param targetUsername (e.g. /chat/sophie_nomad)
+  // Handle URL param targetUsername (e.g. /chat/alex)
   useEffect(() => {
     if (targetUsername) {
       const cleanTarget = targetUsername.toLowerCase().replace(/^@/, "");
-      // Check if target is a curated traveler or existing user
-      const targetCurated = CURATED_TRAVELERS.find(
-        (t) => t.username.toLowerCase() === cleanTarget,
-      );
       const targetUser = {
-        uid: targetCurated?.uid || `user-${cleanTarget}`,
-        username: targetCurated?.username || cleanTarget,
-        avatar: targetCurated?.avatar || cleanTarget.charAt(0).toUpperCase(),
-        location: targetCurated?.location || "",
+        uid: `user-${cleanTarget}`,
+        username: cleanTarget,
+        avatar: cleanTarget.charAt(0).toUpperCase(),
+        location: "",
       };
 
       const { chatId } = getOrCreateChatWithUser({
@@ -175,7 +207,7 @@ export default function ChatPage({
   // Scroll to bottom on messages update
   useEffect(() => {
     scrollToBottom(true);
-  }, [messages.length, isTyping]);
+  }, [messages.length]);
 
   const activeConversation = conversations.find((c) => c.id === activeChatId);
 
@@ -193,26 +225,37 @@ export default function ChatPage({
       senderAvatar: currentProfile.avatar,
       text,
       otherUser: activeConversation.otherUser,
-      onReceivedReply: (replyMsg) => {
-        setIsTyping(false);
-        setMessages((prev) => [...prev, replyMsg]);
-        refreshConversations();
-      },
     });
 
     setMessages((prev) => [...prev, sent]);
     refreshConversations();
+  };
 
-    // Show simulated typing indicator if talking to a curated traveler
-    const otherName = activeConversation.otherUser.username.toLowerCase();
-    if (
-      otherName === "sophie_nomad" ||
-      otherName === "marco_rossi" ||
-      otherName === "elena_voyage" ||
-      otherName === "alex_explorer"
-    ) {
-      setIsTyping(true);
-    }
+  const handleStartEditMsg = (msg: ChatMessage) => {
+    setEditingMsgId(msg.id);
+    setEditingMsgText(msg.text);
+    setActiveMenuMsgId(null);
+  };
+
+  const handleSaveMsgEdit = (msgId: string) => {
+    if (!activeChatId || !editingMsgText.trim()) return;
+    const updated = editChatMessage(
+      activeChatId,
+      msgId,
+      editingMsgText,
+      currentProfile
+    );
+    setMessages(updated);
+    setEditingMsgId(null);
+    refreshConversations();
+  };
+
+  const handleDeleteMsg = (msgId: string) => {
+    if (!activeChatId) return;
+    const updated = deleteChatMessage(activeChatId, msgId, currentProfile);
+    setMessages(updated);
+    setActiveMenuMsgId(null);
+    refreshConversations();
   };
 
   // Filter conversations by search
@@ -222,8 +265,8 @@ export default function ChatPage({
       c.lastMessage?.text.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  // Start new conversation from modal
-  const handleStartChatWithTraveler = (traveler: (typeof CURATED_TRAVELERS)[0]) => {
+  // Start new conversation from modal with real user
+  const handleStartChatWithTraveler = (traveler: { uid: string; username: string; avatar?: string; location?: string }) => {
     const { chatId } = getOrCreateChatWithUser({
       currentUser: currentProfile,
       targetUser: {
@@ -407,7 +450,10 @@ export default function ChatPage({
                       </div>
                       <div className="chat-conv-bottom-line">
                         <p className="chat-conv-snippet">
-                          {conv.lastMessage?.text || "Диалог начат"}
+                          {conv.lastMessage?.text ||
+                            (language === "ru"
+                              ? "Диалог начат"
+                              : "Conversation started")}
                         </p>
                         {conv.unreadCount > 0 && (
                           <span className="chat-unread-badge">
@@ -440,7 +486,8 @@ export default function ChatPage({
                       setActiveChatId(null);
                       navigate("/chat");
                     }}
-                    title="Назад"
+                    title={language === "ru" ? "Назад" : "Back"}
+                    aria-label={language === "ru" ? "Назад" : "Back"}
                   >
                     <svg
                       width="20"
@@ -506,6 +553,7 @@ export default function ChatPage({
                   const isMine =
                     msg.senderUsername === currentProfile.username ||
                     msg.senderId === currentProfile.uid;
+                  const isEditing = editingMsgId === msg.id;
 
                   return (
                     <div
@@ -546,35 +594,110 @@ export default function ChatPage({
                           </div>
                         )}
 
-                        <div className="chat-bubble-content">
-                          <p className="chat-bubble-text">{msg.text}</p>
-                          <span className="chat-bubble-time">
-                            {formatMessageTime(msg.createdAt)}
-                            {isMine && <span className="chat-read-tick"> ✓✓</span>}
-                          </span>
+                        <div className={`chat-bubble-content ${isEditing ? "is-editing" : ""}`}>
+                          {isEditing ? (
+                            <div className="chat-bubble-edit-box">
+                              <input
+                                type="text"
+                                className="chat-bubble-edit-input"
+                                value={editingMsgText}
+                                onChange={(e) => setEditingMsgText(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleSaveMsgEdit(msg.id);
+                                  } else if (e.key === "Escape") {
+                                    setEditingMsgId(null);
+                                  }
+                                }}
+                                autoFocus
+                              />
+                              <div className="chat-bubble-edit-actions">
+                                <button
+                                  type="button"
+                                  className="chat-bubble-edit-btn save"
+                                  onClick={() => handleSaveMsgEdit(msg.id)}
+                                >
+                                  ✓ {language === "ru" ? "Сохранить" : "Save"}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="chat-bubble-edit-btn cancel"
+                                  onClick={() => setEditingMsgId(null)}
+                                >
+                                  ✕ {language === "ru" ? "Отмена" : "Cancel"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="chat-bubble-text">{msg.text}</p>
+                              <div className="chat-bubble-footer">
+                                {msg.isEdited && (
+                                  <span className="chat-edited-badge">
+                                    {language === "ru" ? "ред." : "edited"}
+                                  </span>
+                                )}
+                                <span className="chat-bubble-time">
+                                  {formatMessageTime(msg.createdAt)}
+                                  {isMine && <span className="chat-read-tick"> ✓✓</span>}
+                                </span>
+                              </div>
+                            </>
+                          )}
+
+                          {/* 3-dots action selector menu for message */}
+                          {isMine && !isEditing && (
+                            <div className="chat-msg-action-container">
+                              <button
+                                type="button"
+                                className="chat-msg-action-trigger"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveMenuMsgId(
+                                    activeMenuMsgId === msg.id ? null : msg.id
+                                  );
+                                }}
+                                title={language === "ru" ? "Действия" : "Actions"}
+                                aria-label="Message options"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                                  <circle cx="12" cy="5" r="2.2" />
+                                  <circle cx="12" cy="12" r="2.2" />
+                                  <circle cx="12" cy="19" r="2.2" />
+                                </svg>
+                              </button>
+
+                              {activeMenuMsgId === msg.id && (
+                                <div
+                                  className="chat-action-menu-dropdown"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <button
+                                    type="button"
+                                    className="chat-action-menu-item"
+                                    onClick={() => handleStartEditMsg(msg)}
+                                  >
+                                    <span className="chat-action-menu-icon">✏️</span>
+                                    <span>{language === "ru" ? "Редактировать" : "Edit"}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="chat-action-menu-item delete"
+                                    onClick={() => handleDeleteMsg(msg.id)}
+                                  >
+                                    <span className="chat-action-menu-icon">🗑️</span>
+                                    <span>{language === "ru" ? "Удалить" : "Delete"}</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   );
                 })}
-
-                {/* Typing indicator */}
-                {isTyping && (
-                  <div className="chat-bubble-row theirs">
-                    <div className="chat-msg-avatar">
-                      <UserAvatar
-                        avatar={activeConversation.otherUser.avatar}
-                        username={activeConversation.otherUser.username}
-                        size={30}
-                      />
-                    </div>
-                    <div className="chat-typing-bubble">
-                      <span className="chat-typing-dot" />
-                      <span className="chat-typing-dot" />
-                      <span className="chat-typing-dot" />
-                    </div>
-                  </div>
-                )}
 
                 <div ref={messagesEndRef} />
               </div>
@@ -678,39 +801,62 @@ export default function ChatPage({
               </button>
             </div>
 
+            <div style={{ padding: "0 20px 14px" }}>
+              <input
+                type="text"
+                className="chat-search-input"
+                placeholder={language === "ru" ? "Поиск по имени или городу..." : "Search by username or place..."}
+                value={modalSearchQuery}
+                onChange={(e) => setModalSearchQuery(e.target.value)}
+                autoFocus
+              />
+            </div>
+
             <div className="chat-travelers-picker-list">
-              {CURATED_TRAVELERS.map((traveler) => (
-                <div
-                  key={traveler.uid}
-                  className="chat-picker-card"
-                  onClick={() => handleStartChatWithTraveler(traveler)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <UserAvatar
-                    avatar={traveler.avatar}
-                    username={traveler.username}
-                    size={48}
-                  />
-                  <div className="chat-picker-info">
-                    <span className="chat-picker-name">
-                      @{traveler.username}
-                    </span>
-                    <span className="chat-picker-bio">{traveler.bio}</span>
-                    {traveler.location && (
-                      <span className="chat-picker-loc">
-                        📍 {traveler.location}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="button button-small button-outline chat-picker-action-btn"
-                  >
-                    💬 {language === "ru" ? "Написать" : "Message"}
-                  </button>
+              {loadingModalTravelers ? (
+                <div style={{ padding: "28px 16px", textAlign: "center", color: "var(--text-secondary)" }}>
+                  {language === "ru" ? "Поиск путешественников..." : "Searching travelers..."}
                 </div>
-              ))}
+              ) : modalTravelers.length === 0 ? (
+                <div style={{ padding: "28px 16px", textAlign: "center", color: "var(--text-secondary)" }}>
+                  {language === "ru" ? "Пользователи не найдены." : "No travelers found."}
+                </div>
+              ) : (
+                modalTravelers.map((traveler) => (
+                  <div
+                    key={traveler.uid}
+                    className="chat-picker-card"
+                    onClick={() => handleStartChatWithTraveler(traveler)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <UserAvatar
+                      avatar={traveler.avatar}
+                      username={traveler.username}
+                      size={48}
+                    />
+                    <div className="chat-picker-info">
+                      <span className="chat-picker-name">
+                        @{traveler.username}
+                      </span>
+                      {traveler.bio && (
+                        <span className="chat-picker-bio">{traveler.bio}</span>
+                      )}
+                      {traveler.location && (
+                        <span className="chat-picker-loc">
+                          📍 {traveler.location}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="button button-small button-outline chat-picker-action-btn"
+                    >
+                      💬 {language === "ru" ? "Написать" : "Message"}
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

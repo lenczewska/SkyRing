@@ -21,36 +21,44 @@ type CreatePostModalProps = {
 // Travel preset imagery for quick aesthetic posts
 const POST_PRESETS = [
   {
-    title: "Рассвет на скалах Амальфи",
-    location: "Амальфи, Италия",
+    title: { ru: "Рассвет на скалах Амальфи", en: "Sunrise over Amalfi Cliffs" },
+    location: { ru: "Амальфи, Италия", en: "Amalfi, Italy" },
     image:
       "https://images.unsplash.com/photo-1530789253388-582c481c54b0?auto=format&fit=crop&w=900&q=85",
-    description:
-      "Утренний туман над морем рассеивается, окрашивая скалы в золотистый свет. #italy #amalfi #sunrise #sea",
+    description: {
+      ru: "Утренний туман над морем рассеивается, окрашивая скалы в золотистый свет. #italy #amalfi #sunrise #sea",
+      en: "Morning mist fades over the sea, painting the cliffs in golden light. #italy #amalfi #sunrise #sea",
+    },
   },
   {
-    title: "Бамбуковая роща в Киото",
-    location: "Киото, Япония",
+    title: { ru: "Бамбуковая роща в Киото", en: "Bamboo Grove in Kyoto" },
+    location: { ru: "Киото, Япония", en: "Kyoto, Japan" },
     image:
       "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?auto=format&fit=crop&w=900&q=85",
-    description:
-      "Звук покачивающегося бамбука и кристально чистый утренний воздух. #japan #kyoto #nature #zen",
+    description: {
+      ru: "Звук покачивающегося бамбука и кристально чистый утренний воздух. #japan #kyoto #nature #zen",
+      en: "The rustle of bamboo stalks and crystal-clear morning air. #japan #kyoto #nature #zen",
+    },
   },
   {
-    title: "Вечерний Рим и закат у Колизея",
-    location: "Рим, Италия",
+    title: { ru: "Вечерний Рим и закат у Колизея", en: "Evening Rome and Sunset at the Colosseum" },
+    location: { ru: "Рим, Италия", en: "Rome, Italy" },
     image:
       "https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&w=900&q=85",
-    description:
-      "Вечный город оживает золотыми огнями. Время для неспешной прогулки. #italy #rome #history",
+    description: {
+      ru: "Вечный город оживает золотыми огнями. Время для неспешной прогулки. #italy #rome #history",
+      en: "The Eternal City comes alive in golden evening light. Time for a leisurely stroll. #italy #rome #history",
+    },
   },
   {
-    title: "Воздушные шары над Каппадокией",
-    location: "Каппадокия, Турция",
+    title: { ru: "Воздушные шары над Каппадокией", en: "Hot Air Balloons over Cappadocia" },
+    location: { ru: "Каппадокия, Турция", en: "Cappadocia, Turkey" },
     image:
       "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=900&q=85",
-    description:
-      "Сотни шаров поднимаются в небо с первыми лучами солнца. #cappadocia #turkey #adventure",
+    description: {
+      ru: "Сотни шаров поднимаются в небо с первыми лучами солнца. #cappadocia #turkey #adventure",
+      en: "Hundreds of hot air balloons rise into the morning sky at sunrise. #cappadocia #turkey #adventure",
+    },
   },
 ];
 
@@ -75,9 +83,9 @@ export default function CreatePostModal({
 }: CreatePostModalProps) {
   useModalScrollLock();
 
-  const [title, setTitle] = useState(POST_PRESETS[0].title);
-  const [description, setDescription] = useState(POST_PRESETS[0].description);
-  const [location, setLocation] = useState(POST_PRESETS[0].location);
+  const [title, setTitle] = useState(POST_PRESETS[0].title[language]);
+  const [description, setDescription] = useState(POST_PRESETS[0].description[language]);
+  const [location, setLocation] = useState(POST_PRESETS[0].location[language]);
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [image, setImage] = useState(POST_PRESETS[0].image);
   const [customUrl, setCustomUrl] = useState("");
@@ -157,10 +165,10 @@ export default function CreatePostModal({
   };
 
   const handleApplyPreset = (preset: (typeof POST_PRESETS)[0]) => {
-    setTitle(preset.title);
-    setLocation(preset.location);
+    setTitle(preset.title[language]);
+    setLocation(preset.location[language]);
     setImage(preset.image);
-    setDescription(preset.description);
+    setDescription(preset.description[language]);
   };
 
   const handleAddHashtag = (tag: string) => {
@@ -338,7 +346,7 @@ export default function CreatePostModal({
 
               <div className="create-post-preview-body">
                 <h4 className="create-post-preview-title">
-                  {title || "Название публикации"}
+                  {title || (language === "ru" ? "Название публикации" : "Post title")}
                 </h4>
                 {description && (
                   <div className="create-post-preview-desc">
@@ -410,13 +418,13 @@ export default function CreatePostModal({
                 <div className="create-post-presets-grid">
                   {POST_PRESETS.map((p) => (
                     <button
-                      key={p.title}
+                      key={p.image}
                       type="button"
                       className={`create-post-preset-card ${image === p.image ? "active" : ""}`}
                       onClick={() => handleApplyPreset(p)}
                     >
-                      <img src={p.image} alt={p.title} />
-                      <span>{p.title}</span>
+                      <img src={p.image} alt={p.title[language]} />
+                      <span>{p.title[language]}</span>
                     </button>
                   ))}
                 </div>
@@ -453,6 +461,7 @@ export default function CreatePostModal({
                   options={locationOptions}
                   placeholder={copy.locationPlaceholder}
                   allowCustom={true}
+                  language={language}
                 />
               </div>
 
@@ -480,7 +489,9 @@ export default function CreatePostModal({
 
               {/* Suggested Hashtags */}
               <div className="create-post-hashtag-chips">
-                <span className="hashtag-chips-label"># хэштеги:</span>
+                <span className="hashtag-chips-label">
+                  {language === "ru" ? "# хэштеги:" : "# hashtags:"}
+                </span>
                 {SUGGESTED_HASHTAGS.map((tag) => (
                   <button
                     key={tag}

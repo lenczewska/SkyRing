@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 type HashtagTextProps = {
   text: string;
   className?: string;
+  language?: "en" | "ru";
   onTagClick?: (tag: string) => void;
 };
 
@@ -13,6 +14,7 @@ const HASHTAG_REGEX = /(#[a-zA-Z0-9_\u0400-\u04FF]+)/g;
 export default function HashtagText({
   text,
   className = "",
+  language = "ru",
   onTagClick,
 }: HashtagTextProps) {
   if (!text) return null;
@@ -35,7 +37,11 @@ export default function HashtagText({
                   onTagClick(rawTag);
                 }
               }}
-              title={`Все публикации по тегу #${rawTag}`}
+              title={
+                language === "en"
+                  ? `All posts tagged #${rawTag}`
+                  : `Все публикации по тегу #${rawTag}`
+              }
             >
               {part}
             </Link>

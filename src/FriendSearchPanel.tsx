@@ -98,8 +98,8 @@ export default function FriendSearchPanel({
           onChange={(e) => setQuery(e.target.value)}
           placeholder={
             language === "ru"
-              ? "Введите логин или город (например: sophie_nomad, marco, alex)..."
-              : "Search by username or place (e.g. sophie_nomad, marco, alex)..."
+              ? "Введите логин или город..."
+              : "Search by username or place..."
           }
           className="friend-search-input"
         />

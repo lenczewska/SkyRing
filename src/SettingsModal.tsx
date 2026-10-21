@@ -528,6 +528,7 @@ export default function SettingsModal({
                 options={countryOptions}
                 placeholder={copy.countryPlaceholder}
                 allowCustom={true}
+                language={language}
                 emptyMessage={
                   language === "ru" ? "Страна не найдена" : "No country found"
                 }
@@ -540,6 +541,7 @@ export default function SettingsModal({
                 options={cityOptions}
                 placeholder={copy.cityPlaceholder}
                 allowCustom={true}
+                language={language}
                 disabled={!country.trim()}
                 hint={
                   !country.trim()

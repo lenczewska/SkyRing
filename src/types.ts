@@ -21,6 +21,7 @@ export type PostComment = {
   authorAvatar?: string
   text: string
   createdAt: string
+  isEdited?: boolean
 }
 
 export type Post = {
@@ -126,6 +127,7 @@ export type ChatMessage = {
     caption?: string
   }
   isRead?: boolean
+  isEdited?: boolean
 }
 
 export type ChatConversation = {
